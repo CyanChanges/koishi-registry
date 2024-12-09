@@ -1,0 +1,25 @@
+THE SOFTWARE IS PROVIDED “AS IS”, WITHOUT WARRANTY OF ANY KIND, EXPRESS OR IMPLIED,
+INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT.
+IN NO EVENT SHALL THE AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM,
+DAMAGES OR OTHER LIABILITY,
+WHETHER IN AN ACTION OF CONTRACT,
+TORT OR OTHERWISE, ARISING FROM, OUT OF OR IN CONNECTION WITH THE SOFTWARE
+OR THE USE OR OTHER DEALINGS IN THE SOFTWARE.
+
+Permission is hereby granted to Shigma<shigma10826@gmail.com>
+to a non-transferable permission to deal in the Software,
+including without limitation the rights to use, copy, and/or modify of the Software.
+
+The project is under AGPL 3.0 License
+https://www.gnu.org/licenses/agpl-3.0.en.html#license-text
+with following additional restrictions:
+
+You are FORBIDDEN to do anything that would make Deno users unable to use this app (e.g. use Node.js specified feature, or a feature not available in Deno) or use code from this project in a project that does not intended for Deno.
+
+You are FORBIDDEN to port this app to Node.js or use code from this project in a project that uses Node.js.
+
+You are FORBIDDEN to use JavaScript in this project (e.g. compile TypeScript source code to JavaScript), you should always use TypeScript in this project.
+
+The above MUST BE included in the license of any forks of this project.
+
