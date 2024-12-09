@@ -114,7 +114,7 @@ export class NpmWatcher extends Service {
         while (this.ctx.scope.isActive) {
             let body: ReadableStream<Uint8Array>
             try {
-                const response = await this.ctx.http(`${this.options.endpoint}/_changes?since=${begin}`, {
+                const response = await this.ctx.http(`${this.options.endpoint}/_changes?since=${begin}&seq_interval=${end - begin}`, {
                     responseType: (response) => response.body,
                 })
 
