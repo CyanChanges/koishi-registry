@@ -2,16 +2,20 @@
   "imports": {
     "@cordisjs/plugin-http": "npm:@cordisjs/plugin-http@^0.6.3",
     "@cordisjs/plugin-logger": "npm:@cordisjs/plugin-logger@^0.1.1",
+    "@std/assert": "jsr:@std/assert@^1.0.9",
     "cordis": "npm:cordis@^3.18.1",
     "cosmokit": "npm:cosmokit@^1.6.3",
     "lodash.trim": "npm:lodash.trim@^4.5.1",
-    "reggol": "npm:reggol@^1.7.1"
+    "lodash.trimend": "npm:lodash.trimend@^4.5.1",
+    "reggol": "npm:reggol@^1.7.1",
+    "schemastery": "npm:schemastery@^3.14.7"
   },
   "unstable": [
     "sloppy-imports"
   ],
   "tasks": {
-    "start": "deno run --allow-all main.ts"
+    "start": "deno run --allow-all main.ts",
+    "test": "deno test --ignore=./hono-mod --no-check"
   },
   "workspace": ["./hono-mod"],
   "compilerOptions": {

@@ -1,6 +1,8 @@
 {
   "version": "4",
   "specifiers": {
+    "jsr:@std/assert@^1.0.9": "1.0.9",
+    "jsr:@std/internal@^1.0.5": "1.0.5",
     "npm:@cordisjs/plugin-http@~0.6.3": "0.6.3_cordis@3.18.1__@cordisjs+core@3.18.1",
     "npm:@cordisjs/plugin-logger@~0.1.1": "0.1.1_@cordisjs+plugin-webui@0.1.14__cordis@3.18.1___@cordisjs+core@3.18.1_cordis@3.18.1__@cordisjs+core@3.18.1",
     "npm:@types/node@*": "22.5.4",
@@ -8,7 +10,20 @@
     "npm:cosmokit@^1.6.3": "1.6.3",
     "npm:create-hono@latest": "0.14.3",
     "npm:lodash.trim@^4.5.1": "4.5.1",
-    "npm:reggol@^1.7.1": "1.7.1"
+    "npm:lodash.trimend@^4.5.1": "4.5.1",
+    "npm:reggol@^1.7.1": "1.7.1",
+    "npm:schemastery@^3.14.7": "3.14.7"
+  },
+  "jsr": {
+    "@std/assert@1.0.9": {
+      "integrity": "a9f0c611a869cc791b26f523eec54c7e187aab7932c2c8e8bea0622d13680dcd",
+      "dependencies": [
+        "jsr:@std/internal"
+      ]
+    },
+    "@std/internal@1.0.5": {
+      "integrity": "54a546004f769c1ac9e025abd15a76b6671ddc9687e2313b67376125650dc7ba"
+    }
   },
   "npm": {
     "@cordisjs/core@3.18.1": {
@@ -160,6 +175,9 @@
     "lodash.trim@4.5.1": {
       "integrity": "sha512-nJAlRl/K+eiOehWKDzoBVrSMhK0K3A3YQsUNXHQa5yIrKBAhsZgSu3KoAFoFT+mEgiyBHddZ0pRk1ITpIp90Wg=="
     },
+    "lodash.trimend@4.5.1": {
+      "integrity": "sha512-lsD+k73XztDsMBKPKvzHXRKFNMohTjoTKIIo4ADLn5dA65LZ1BqlAvSXhR2rPEC3BgAUQnzMnorqDtqn2z4IHA=="
+    },
     "mime-db@1.53.0": {
       "integrity": "sha512-oHlN/w+3MQ3rba9rqFr6V/ypF10LSkdwUysQL7GkXoTgIWeV+tcXGA852TBxH+gsh8UWoyhR1hKcoMJTuWflpg=="
     },
@@ -249,12 +267,15 @@
   },
   "workspace": {
     "dependencies": [
+      "jsr:@std/assert@^1.0.9",
       "npm:@cordisjs/plugin-http@~0.6.3",
       "npm:@cordisjs/plugin-logger@~0.1.1",
       "npm:cordis@^3.18.1",
       "npm:cosmokit@^1.6.3",
       "npm:lodash.trim@^4.5.1",
-      "npm:reggol@^1.7.1"
+      "npm:lodash.trimend@^4.5.1",
+      "npm:reggol@^1.7.1",
+      "npm:schemastery@^3.14.7"
     ]
   }
 }

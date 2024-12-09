@@ -10,7 +10,7 @@ const app = new Context();
 app.plugin(LoggerService)
 app.plugin(HttpService)
 app.plugin(StorageLocalStorage)
-app.plugin(NpmWatcher)
+app.plugin(NpmWatcher, { block_size: 500, concurrent: 30 })
 
 app.hono.get("/plugins", (c) => {
     return c.json([...app.npm.plugins.values()]);
