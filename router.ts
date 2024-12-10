@@ -3,7 +3,16 @@ import { Hono, type ExecutionContext } from "hono";
 import { TrieRouter } from "hono/router/trie-router"
 import type { BlankInput, H, Handler, RouterRoute } from "hono/types";
 
+declare module 'cordis' {
+    export interface Context {
+        hono: Router;
+        server: Router;
+        router: Router;
+    }
+}
+
 export class Router extends Hono {
+    // deno-lint-ignore no-explicit-any
     override router: TrieRouter<[Handler<any, any, BlankInput, any>, RouterRoute]>;
     [Service.tracker] = {
         associate: 'hono',

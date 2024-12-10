@@ -1,7 +1,7 @@
 import { Context } from '../context.ts'
 import { Storage } from './base.ts'
 
-declare module '../context.ts' {
+declare module 'cordis' {
     interface Context {
         'storage.localstorage': StorageLocalStorage
     }

@@ -4,14 +4,14 @@ import { Awaitable } from "cosmokit";
 import { Router } from "./router.ts";
 
 export interface Context {
-    // deno-lint-ignore ban-types
     fetch(
         request: Request,
+        // deno-lint-ignore ban-types
         env?: {},
         ctx?: ExecutionContext,
     ): Awaitable<Response>;
 
-    hono: Hono;
+    [Context.events]: Events<this>;
 }
 
 export class Context extends cordis.Context {
@@ -25,5 +25,7 @@ export class Context extends cordis.Context {
         });
     }
 }
+
+export interface Events<C extends Context = Context> extends cordis.Events<C> {}
 
 export { Service } from 'cordis'

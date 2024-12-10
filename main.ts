@@ -1,6 +1,7 @@
 import { Context } from "./context.ts";
 import { StorageLocalStorage } from "./storage/localstorage.ts";
 import NpmWatcher from "./npm.ts";
+import KoishiRegistry from './koishi_registry.ts'
 import Logger from 'reggol'
 import HttpService from '@cordisjs/plugin-http'
 import * as LoggerService from "@cordisjs/plugin-logger";
@@ -11,8 +12,9 @@ app.plugin(LoggerService)
 app.plugin(HttpService)
 app.plugin(StorageLocalStorage)
 app.plugin(NpmWatcher, { block_size: 1000, concurrent: 50 })
+app.plugin(KoishiRegistry)
 
-app.hono.get("/plugins", (c) => {
+app.hono.get("/api/plugins", (c) => {
     return c.json([...app.npm.plugins.values()]);
 });
 

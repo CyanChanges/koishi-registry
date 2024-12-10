@@ -5,6 +5,8 @@
     "jsr:@std/internal@^1.0.5": "1.0.5",
     "npm:@cordisjs/plugin-http@~0.6.3": "0.6.3_cordis@3.18.1__@cordisjs+core@3.18.1",
     "npm:@cordisjs/plugin-logger@~0.1.1": "0.1.1_@cordisjs+plugin-webui@0.1.14__cordis@3.18.1___@cordisjs+core@3.18.1_cordis@3.18.1__@cordisjs+core@3.18.1",
+    "npm:@koishijs/registry@7.0.3": "7.0.3",
+    "npm:@koishijs/registry@^7.0.3": "7.0.3",
     "npm:@types/node@*": "22.5.4",
     "npm:cordis@^3.18.1": "3.18.1_@cordisjs+core@3.18.1",
     "npm:cosmokit@^1.6.3": "1.6.3",
@@ -93,6 +95,14 @@
         "cosmokit"
       ]
     },
+    "@koishijs/registry@7.0.3": {
+      "integrity": "sha512-Ze6cxfl1TlVFIdb6whWcdI5UT6xxeF5k1/RMUWM31gcegR09KtXGgky7N0gJRMcNByrx9o9VZyZu641jAhQNbQ==",
+      "dependencies": [
+        "cosmokit",
+        "p-map",
+        "semver"
+      ]
+    },
     "@tokenizer/token@0.3.0": {
       "integrity": "sha512-OvjF+z51L3ov0OyAU0duzsYuvO01PH7x4t6DJx+guahgTnBHkhJdG7soQeTSFLWN3efnHyibZ4Z8l2EuWwJN3A=="
     },
@@ -102,11 +112,21 @@
         "undici-types"
       ]
     },
+    "aggregate-error@3.1.0": {
+      "integrity": "sha512-4I7Td01quW/RpocfNayFdFVk1qSuoh0E7JrbRJ16nH01HhKFQ88INq9Sd+nd72zqRySlr9BmDA8xlEJ6vJMrYA==",
+      "dependencies": [
+        "clean-stack",
+        "indent-string"
+      ]
+    },
     "argparse@2.0.1": {
       "integrity": "sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q=="
     },
     "cac@6.7.14": {
       "integrity": "sha512-b6Ilus+c3RrdDk+JhLKUAQfzzgLEPy6wcXqS7f/xe1EETvsDP6GORG7SFuOs6cID5YkqchW/LXZbX5bc8j7ZcQ=="
+    },
+    "clean-stack@2.2.0": {
+      "integrity": "sha512-4diC9HaTE+KRAMWhDhrGOECgWZxoevMc5TlkObMqNSsVU62PYzXZ/SMTjzyGAFF1YusgxGcSWTEXBhp0CPwQ1A=="
     },
     "cordis@3.18.1_@cordisjs+core@3.18.1": {
       "integrity": "sha512-9IbthFbFBVJ15WBDNPqHdl59TyEAMNWxF1Dxsdi14625ePQkMX35WvcqgGno0BcXlpXDbUaBZgQ+jfBYT+uuSQ==",
@@ -151,6 +171,9 @@
     "ieee754@1.2.1": {
       "integrity": "sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA=="
     },
+    "indent-string@4.0.0": {
+      "integrity": "sha512-EdDDZu4A2OyIK7Lr/2zG+w5jmbuk1DVBnEwREQvBzspBJkCEbRa8GxU1lghYcaGJCnRWibjDXlq779X1/y5xwg=="
+    },
     "inherits@2.0.4": {
       "integrity": "sha512-k/vGaX4/Yla3WzyMCvTQOXYeIHvqOKtnqBduzTHpzpQZzAskKMhZ2K+EnBiSM9zGSoIFeMpXKxa4dYeZIQqewQ=="
     },
@@ -192,6 +215,12 @@
         "is-wsl"
       ]
     },
+    "p-map@4.0.0": {
+      "integrity": "sha512-/bjOqmgETBYB5BoEeGVea8dmvHb2m9GLy1E9W43yeyfP6QQCZGFNa+XRceJEuDB6zqr+gKpIAmlLebMpykw/MQ==",
+      "dependencies": [
+        "aggregate-error"
+      ]
+    },
     "peek-readable@4.1.0": {
       "integrity": "sha512-ZI3LnwUv5nOGbQzD9c2iDG6toheuXSZP5esSHBjopsXH4dg19soufvpUGA3uohi5anFtGb2lhAVdHzH6R/Evvg=="
     },
@@ -225,6 +254,9 @@
       "dependencies": [
         "cosmokit"
       ]
+    },
+    "semver@7.6.3": {
+      "integrity": "sha512-oVekP1cKtI+CTDvHWYFUcMtsK/00wmAEfyqKfNdARm8u1wNVhSgaX7A8d4UuIlUI5e84iEwOhs7ZPYRmzU9U6A=="
     },
     "string_decoder@1.3.0": {
       "integrity": "sha512-hkRX8U1WjJFd8LsDJ2yQ/wWWxaopEsABU1XfkM8A+j0+85JAGppt16cr1Whg6KIbb4okU6Mql6BOj+uup/wKeA==",
@@ -270,6 +302,7 @@
       "jsr:@std/assert@^1.0.9",
       "npm:@cordisjs/plugin-http@~0.6.3",
       "npm:@cordisjs/plugin-logger@~0.1.1",
+      "npm:@koishijs/registry@^7.0.3",
       "npm:cordis@^3.18.1",
       "npm:cosmokit@^1.6.3",
       "npm:lodash.trim@^4.5.1",

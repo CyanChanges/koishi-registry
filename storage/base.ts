@@ -1,7 +1,7 @@
 import { Context, Service } from "../context.ts";
 import { Awaitable } from "cosmokit";
 
-declare module '../context.ts' {
+declare module 'cordis' {
     export interface Context {
         storage: Storage;
     }

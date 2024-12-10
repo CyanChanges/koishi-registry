@@ -2,16 +2,17 @@ import { Context, Service } from "./context.ts";
 import trim from 'lodash.trim'
 import trimEnd from 'lodash.trimend'
 import Schema from "schemastery";
+import type { Awaitable } from "cosmokit";
 
-declare module './context.ts' {
+declare module 'cordis' {
     export interface Events {
-        'npm/fetched-packages'(records: ChangeRecord[]): void;
-        'npm/fetched-plugins'(records: ChangeRecord[]): void;
-        'npm/synchronized'(): void;
+        'npm/fetched-packages'(records: ChangeRecord[]): Awaitable<void>;
+        'npm/fetched-plugins'(records: ChangeRecord[]): Awaitable<void>;
+        'npm/synchronized'(): Awaitable<void>;
     }
 }
 
-declare module './context.ts' {
+declare module 'cordis' {
     export interface Context {
         npm: NpmWatcher
     }
@@ -49,6 +50,7 @@ export class NpmWatcher extends Service {
 
     _seq = 8000000 // 2022-01(Koishi v4)
     plugins: Set<string> = new Set()
+    synchronized = false
 
     get seq(): number {
         return this._seq
@@ -59,7 +61,7 @@ export class NpmWatcher extends Service {
         this.ctx.storage.set("npm.seq", value)?.then?.()
     }
 
-    constructor(ctx: Context, protected options: NpmWatcher.Config) {
+    constructor(ctx: Context, public options: NpmWatcher.Config) {
         super(ctx, 'npm');
         this.options.endpoint = trimEnd(this.options.endpoint, '/')
     }
@@ -225,12 +227,15 @@ export class NpmWatcher extends Service {
         await workers
         this.ctx.logger.info('synchronized with npm')
 
+        this.synchronized = true
         await this.ctx.parallel(this, "npm/synchronized")
         this.ctx.logger.debug('start synchronizing with npm (seq: %c)', this.seq)
         await this.simpleFetch() // Most records is synchronized, so we can just watch new changes here
     }
 
     override async start() {
+        this.synchronized = false
+
         if (await this.ctx.storage.has('npm.seq')) {
             this.seq = await this.ctx.storage.get('npm.seq');
             this.ctx.logger.debug("restored seq %c", this.seq)
