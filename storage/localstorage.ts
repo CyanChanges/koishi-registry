@@ -16,16 +16,12 @@ export class StorageLocalStorage extends Storage {
         return key in localStorage && typeof localStorage.getItem(key) === "string"
     }
 
-    override get(key: string): object | null {
-
-        const data = localStorage.getItem(key)
-        if (data === null)
-            return null
-        return JSON.parse(data)
+    override getRaw(key: string): string | null {
+        return localStorage.getItem(key);
     }
 
-    override set(key: string, value: object): void {
-        localStorage.setItem(key, JSON.stringify(value))
+    override setRaw(key: string, value: string): void {
+        localStorage.setItem(key, value)
     }
 
     override remove(key: string): void {

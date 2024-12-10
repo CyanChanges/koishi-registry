@@ -2,6 +2,7 @@ import { Context, Service } from "./context.ts";
 import trim from 'lodash.trim'
 import trimEnd from 'lodash.trimend'
 import Schema from "schemastery";
+import Random from 'inaba'
 import type { Awaitable } from "cosmokit";
 
 declare module 'cordis' {
@@ -93,19 +94,19 @@ export class NpmWatcher extends Service {
 
             if (records.length > 0) {
                 const last = records[records.length - 1]
-                await this.ctx.parallel(this, 'npm/fetched-packages', records)
                 // this.ctx.logger.debug(`Fetched ${records.length} packages from ${this.options.endpoint}`)
                 update?.(last.seq)
+                this.ctx.parallel(this, 'npm/fetched-packages', records).then()
                 if (stop_at > 0 && last.seq >= stop_at) return true
             }
 
             const filtered = records.filter(record=>isKoishiPlugin(record.id))
 
             if (filtered.length > 0) {
-                await this.ctx.parallel(this, 'npm/fetched-plugins', filtered)
                 this.ctx.logger.debug(`fetched ${filtered.length} plugins from ${this.options.endpoint}`)
                 filtered.forEach(record => this.plugins.add(record.id))
                 await this.flushPlugins()
+                this.ctx.parallel(this, 'npm/fetched-plugins', filtered).then()
                 // console.log('-- data: ', filtered)
             }
         }
@@ -156,11 +157,21 @@ export class NpmWatcher extends Service {
         }
     }
 
-    private async fetch() {
-        const response = await this.ctx.http(`${this.options.endpoint}/`)
-        const max_seq = response.data['committed_update_seq'] // get commited seq
+    private async getMaxSeq(_times=0): Promise<number> {
+        if (_times > this.options.max_retries) throw new Error("too many retries")
+        const response = await this.ctx.http(`${this.options.endpoint}/`, {
+            validateStatus(status) {
+                return status === 200 || status === 429
+            }
+        })
+        if (response.status === 200) return response.data['committed_update_seq'] as number
+        return await this.getMaxSeq(_times + 1)
+    }
 
-        let blocks_till_sync = Math.ceil((max_seq - this.seq) / this.options.block_size)
+    private async fetch() {
+        const max_seq = await this.getMaxSeq() // get all commited seq (max number of seq)
+
+        const blocks_till_sync = Math.ceil((max_seq - this.seq) / this.options.block_size)
 
         this.ctx.logger.info("start fetching with %c worker(s) (seq: %c)...", this.options.concurrent, this.seq)
 
@@ -258,12 +269,14 @@ export namespace NpmWatcher {
         endpoint: string,
         concurrent: number,
         block_size: number,
+        max_retries: number
     }
 
     export const Config: Schema = Schema.object({
         endpoint: Schema.string().default('https://replicate.npmjs.com/'),
         concurrent: Schema.number().min(1).default(20),
-        block_size: Schema.number().min(100).default(1000)
+        block_size: Schema.number().min(100).default(1000),
+        max_retries: Schema.number().min(0).default(5)
     })
 }
 

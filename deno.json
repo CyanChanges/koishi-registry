@@ -5,12 +5,16 @@
     "@cordisjs/timer": "npm:@cordisjs/timer@^0.3.2",
     "@koishijs/registry": "npm:@koishijs/registry@^7.0.3",
     "@std/assert": "jsr:@std/assert@^1.0.9",
+    "avsc": "npm:avsc@^5.7.7",
+    "bson": "npm:bson@^6.10.1",
     "cordis": "npm:cordis@^3.18.1",
     "cosmokit": "npm:cosmokit@^1.6.3",
+    "inaba": "npm:inaba@^1.1.1",
     "lodash.trim": "npm:lodash.trim@^4.5.1",
     "lodash.trimend": "npm:lodash.trimend@^4.5.1",
     "reggol": "npm:reggol@^1.7.1",
-    "schemastery": "npm:schemastery@^3.14.7"
+    "schemastery": "npm:schemastery@^3.14.7",
+    "./koishi_registry": "./koishi_registry/mod.ts"
   },
   "unstable": [
     "sloppy-imports"

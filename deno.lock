@@ -9,9 +9,13 @@
     "npm:@koishijs/registry@7.0.3": "7.0.3",
     "npm:@koishijs/registry@^7.0.3": "7.0.3",
     "npm:@types/node@*": "22.5.4",
+    "npm:avsc@*": "5.7.7",
+    "npm:avsc@^5.7.7": "5.7.7",
+    "npm:bson@^6.10.1": "6.10.1",
     "npm:cordis@^3.18.1": "3.18.1_@cordisjs+core@3.18.1",
     "npm:cosmokit@^1.6.3": "1.6.3",
     "npm:create-hono@latest": "0.14.3",
+    "npm:inaba@^1.1.1": "1.1.1",
     "npm:lodash.trim@^4.5.1": "4.5.1",
     "npm:lodash.trimend@^4.5.1": "4.5.1",
     "npm:reggol@^1.7.1": "1.7.1",
@@ -123,6 +127,12 @@
     "argparse@2.0.1": {
       "integrity": "sha512-8+9WqebbFzpX9OR+Wa6O29asIogeRMzcGtAINdpMHHyAg10f05aSFVBbcEqGf/PXw1EjAZ+q2/bEBg3DvurK3Q=="
     },
+    "avsc@5.7.7": {
+      "integrity": "sha512-9cYNccliXZDByFsFliVwk5GvTq058Fj513CiR4E60ndDwmuXzTJEp/Bp8FyuRmGyYupLjHLs+JA9/CBoVS4/NQ=="
+    },
+    "bson@6.10.1": {
+      "integrity": "sha512-P92xmHDQjSKPLHqFxefqMxASNq/aWJMEZugpCjf+AF/pgcUpMMQCg7t7+ewko0/u8AapvF3luf/FoehddEK+sA=="
+    },
     "cac@6.7.14": {
       "integrity": "sha512-b6Ilus+c3RrdDk+JhLKUAQfzzgLEPy6wcXqS7f/xe1EETvsDP6GORG7SFuOs6cID5YkqchW/LXZbX5bc8j7ZcQ=="
     },
@@ -171,6 +181,9 @@
     },
     "ieee754@1.2.1": {
       "integrity": "sha512-dcyqhDvX1C46lXZcVqCpK+FtMRQVdIMN6/Df5js2zouUsqG7I6sFxitIC+7KYK29KdXOLHdu9zL4sFnoVQnqaA=="
+    },
+    "inaba@1.1.1": {
+      "integrity": "sha512-VYgrcz9EwjHELNU74R/p81U/G00u8KuFzao43pyNp7UZix+NY78eUzBy1Ks0tSgxgia+luJMvTD67vV02pk9yg=="
     },
     "indent-string@4.0.0": {
       "integrity": "sha512-EdDDZu4A2OyIK7Lr/2zG+w5jmbuk1DVBnEwREQvBzspBJkCEbRa8GxU1lghYcaGJCnRWibjDXlq779X1/y5xwg=="
@@ -305,8 +318,11 @@
       "npm:@cordisjs/plugin-logger@~0.1.1",
       "npm:@cordisjs/timer@~0.3.2",
       "npm:@koishijs/registry@^7.0.3",
+      "npm:avsc@^5.7.7",
+      "npm:bson@^6.10.1",
       "npm:cordis@^3.18.1",
       "npm:cosmokit@^1.6.3",
+      "npm:inaba@^1.1.1",
       "npm:lodash.trim@^4.5.1",
       "npm:lodash.trimend@^4.5.1",
       "npm:reggol@^1.7.1",

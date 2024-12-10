@@ -1,7 +1,7 @@
 import { Context } from "./context.ts";
 import { StorageLocalStorage } from "./storage/localstorage.ts";
 import NpmWatcher from "./npm.ts";
-import KoishiRegistry from './koishi_registry.ts'
+import KoishiRegistry from './koishi_registry'
 import Logger from 'reggol'
 import HttpService from '@cordisjs/plugin-http'
 import * as LoggerService from "@cordisjs/plugin-logger";
