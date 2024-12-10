@@ -1,31 +1,35 @@
 import * as cordis from "cordis";
-import { type ExecutionContext, Hono } from "hono";
-import { Awaitable } from "cosmokit";
-import { Router } from "./router.ts";
+import { Server } from "./server.ts";
+import Schema from 'schemastery'
 
-export interface Context {
-    fetch(
-        request: Request,
-        // deno-lint-ignore ban-types
-        env?: {},
-        ctx?: ExecutionContext,
-    ): Awaitable<Response>;
-
-    [Context.events]: Events<this>;
-}
+// export interface Context {
+//     fetch(
+//         request: Request,
+//         // deno-lint-ignore ban-types
+//         env?: {},
+//         ctx?: ExecutionContext,
+//     ): Awaitable<Response>;
+// }
 
 export class Context extends cordis.Context {
-    constructor() {
+    constructor(config: Context.Config = {}) {
         super();
-        this.plugin(Router);
-        return Object.defineProperty(this, "fetch", {
-            get() {
-                return this.hono.fetch;
-            },
-        });
+        this.plugin(Server, config.server);
     }
 }
+export namespace Context {
+    export interface Config {
+        server?: Server.Config
+    }
 
-export interface Events<C extends Context = Context> extends cordis.Events<C> {}
+    export const Config: Schema = Schema.object({
+        server: Server.Config
+    })
 
-export { Service } from 'cordis'
+}
+
+export abstract class Service<T = any, C extends Context = Context> extends cordis.Service<T, C> {
+    override [cordis.Service.setup]() {
+        this.ctx = new Context() as C
+    }
+}

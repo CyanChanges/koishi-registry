@@ -1,25 +1,28 @@
-import { Context, Service } from "./context.ts";
+import { Context } from "./context.ts";
+import Schema from 'schemastery'
+import { Service } from 'cordis'
 import { Hono, type ExecutionContext } from "hono";
 import { TrieRouter } from "hono/router/trie-router"
 import type { BlankInput, H, Handler, RouterRoute } from "hono/types";
 
 declare module 'cordis' {
     export interface Context {
-        hono: Router;
-        server: Router;
-        router: Router;
+        hono: Server;
+        server: Server;
+        router: Server;
     }
 }
 
-export class Router extends Hono {
+export class Server extends Hono {
     // deno-lint-ignore no-explicit-any
     override router: TrieRouter<[Handler<any, any, BlankInput, any>, RouterRoute]>;
     [Service.tracker] = {
         associate: 'hono',
         property: 'ctx',
     }
+    _server?: Deno.HttpServer<Deno.NetAddr>;
 
-    constructor(protected ctx: Context) {
+    constructor(protected ctx: Context, protected config: Server.Config) {
         // deno-lint-ignore no-explicit-any
         const router: TrieRouter<[Handler<any, any, BlankInput, any>, RouterRoute]> = new TrieRouter();
 
@@ -29,10 +32,19 @@ export class Router extends Hono {
         super({router})
         this.router = router
 
-        const self = Context.associate(this, 'server')
-        ctx.set('hono', self)
+        this.ctx.on('ready', ()=>{
+            this._server = Deno.serve(
+                {
+                    hostname: config.host,
+                    port: config.port
+                },
+                this.fetch
+            )
 
-        return self
+            this.ctx.on('dispose', ()=>this._server?.shutdown())
+        })
+
+        ctx.set('hono', this)
     }
 
     protected override _addRoute(method: string, path: string, handler: H): void {
@@ -41,4 +53,15 @@ export class Router extends Hono {
            this.router.remove(method, path)
         })
     }
+}
+
+export namespace Server {
+    export interface Config {
+        host?: string
+        port?: number
+    }
+    export const Config = Schema.object({
+        host: Schema.string().default('0.0.0.0'),
+        port: Schema.number().min(0).max(65535).default(8000)
+    })
 }

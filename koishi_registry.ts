@@ -127,6 +127,10 @@ export namespace NpmRegistry {
 }
 
 declare module 'cordis' {
+    export interface Context {
+        koishi: KoishiRegistry
+    }
+
     export interface Events {
         'koishi/is-verified'(packageName: string, manifest: KoishiRegistry.Manifest, meta?: NpmRegistry.Result): Awaitable<boolean | void>
 
@@ -141,7 +145,7 @@ export class KoishiRegistry extends Service {
     cache: Map<string, KoishiRegistry.Object> = new Map()
     fetchTask: number = 0
 
-    constructor(ctx: Context, protected options: Plugins.Config) {
+    constructor(ctx: Context, protected options: KoishiRegistry.Config) {
         super(ctx, 'koishi')
 
         // this.options.registryEndpoint = trimEnd(options.registryEndpoint, '/')
@@ -167,6 +171,11 @@ export class KoishiRegistry extends Service {
         })
 
         await this.refresh_all()
+        if (!this.ctx.root.get('timer'))
+            this.ctx.logger.warn('timer service not found, could not do scheduled refresh')
+        this.ctx.inject(['timer'], (ctx: Context) => {
+            ctx.setInterval(()=>this.quickRefresh(), this.options.autoRefreshInterval * 1000)
+        })
     }
 
     // deno-lint-ignore require-await
@@ -277,11 +286,15 @@ export class KoishiRegistry extends Service {
         try {
             const object = await this._fresh_fetch(packageName)
             this.cache.set(packageName, object)
-            this.ctx.logger.debug(`✅ ${aligned(packageName)} \t\t| cached`)
+            this.ctx.logger.debug(`✅ ${aligned(packageName)} \t\t| complete`)
 
             return object
-        } catch {
-            this.ctx.logger.debug(`❎ ${aligned(packageName)} \t\t| does not exist`)
+        // deno-lint-ignore no-explicit-any
+        } catch (e: any | Error) {
+            if (e?.message === 'Package not exist')
+                this.ctx.logger.debug(`❎ ${aligned(packageName)} \t\t| not exist`)
+            else
+                this.ctx.logger.warn(`⚠️ ${aligned(packageName)} \t\t| ${e}`)
             return null
         } finally {
             this.fetchTask--
@@ -299,7 +312,7 @@ export class KoishiRegistry extends Service {
     public async refresh_all(): Promise<KoishiRegistry.Object[]> {
         this.lastRefreshDate = new Date()
 
-        return (await Promise.all(
+        return (await Promise.all( // FIXME: 429 Too Many Requests
             this.ctx.npm.plugins
                 .values()
                 .map(packageName => this.fresh_fetch(packageName))
@@ -319,11 +332,20 @@ export class KoishiRegistry extends Service {
         this.ctx.logger.debug('triggered quickRefresh')
 
         await Promise.all(this.cache.entries().map(async ([packageName, object]) => {
-            const [downloads, isVerified, isInsecure] = await Promise.all([
-                this.ctx.http.get<NpmRegistry.DownloadAPIResult>(`${this.options.endpoint}/downloads/last-month/${packageName}`),
+            const [downloadsResult, isVerified, isInsecure] = await Promise.all([
+                this.ctx.http<NpmRegistry.DownloadAPIResult>(
+                    `${this.options.endpoint}/downloads/last-month/${packageName}`, {
+                        validateStatus: (status) => status === 200 || status === 404
+                    }
+                ),
                 this.isVerified(packageName, object.manifest),
                 this.isInsecure(packageName, object.manifest),
             ])
+            if (downloadsResult.status === 404) { // invalidate the cache if not found
+                this.cache.delete(packageName)
+                return
+            }
+            const downloads = downloadsResult.data
 
             object.verified = isVerified
             object.insecure = isInsecure
@@ -339,12 +361,14 @@ export class KoishiRegistry extends Service {
 export namespace KoishiRegistry {
     export interface Config {
         endpoint: string,
-        npmURL: string
+        npmURL: string,
+        autoRefreshInterval: number
     }
 
     export const Config: Schema = Schema.object({
         endpoint: Schema.string().default("https://api.npmjs.org/"),
-        npmURL: Schema.string().default("https://www.npmjs.com/")
+        npmURL: Schema.string().default("https://www.npmjs.com/"),
+        autoRefreshInterval: Schema.number().min(30).default(600).description("Unit: seconds")
     })
 }
 

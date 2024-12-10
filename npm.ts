@@ -237,15 +237,18 @@ export class NpmWatcher extends Service {
         this.synchronized = false
 
         if (await this.ctx.storage.has('npm.seq')) {
-            this.seq = await this.ctx.storage.get('npm.seq');
+            this.seq = await this.ctx.storage.get('npm.seq') as unknown as number;
             this.ctx.logger.debug("restored seq %c", this.seq)
         }
         if (await this.ctx.storage.has('npm.plugins')) {
-            this.plugins = new Set(await this.ctx.storage.get('npm.plugins'));
+            this.plugins = new Set(await this.ctx.storage.get('npm.plugins') as string[]);
             this.ctx.logger.debug("restored %c plugin(s)", this.plugins.size)
         }
 
-        this.fetchTask = this.fetch().catch(this.ctx.scope.cancel)
+        this.fetchTask = this.fetch().catch(e => {
+            this.ctx.logger.error(e)
+            this.ctx.scope.cancel(e)
+        })
     }
 }
 

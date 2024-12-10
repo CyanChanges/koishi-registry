@@ -15,7 +15,8 @@ export abstract class Storage extends Service {
 
     abstract has(key: string): Awaitable<boolean>;
     abstract get(key: string): Awaitable<object | null>;
-    abstract set(key: string, value: object): Awaitable<void>;
+    // deno-lint-ignore no-explicit-any
+    abstract set(key: string, value: any): Awaitable<void>;
     abstract remove(key: string): Awaitable<void>;
     protected abstract clear(): Awaitable<void>;
 }
