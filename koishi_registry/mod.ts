@@ -45,7 +45,7 @@ export class KoishiRegistry extends Service {
         this.options.npmURL = trimEnd(options.npmURL, '/')
         this.lastRefreshDate = new Date()
 
-        ctx.on('npm/synchronized', () => this.synchronized())
+        ctx.on('npm/synchronized', () => this.quickRefresh())
     }
 
     override async start() {
@@ -57,6 +57,7 @@ export class KoishiRegistry extends Service {
         this.ctx.logger.info(`restored %C entries`, this.cache.size)
         this.ctx.on('dispose', () => this.writeCache())
 
+        // when new plugin appears, update only the changed content
         this.ctx.on('npm/fetched-plugins', record => this.partialUpdate(record))
 
         this.ctx.hono.on("GET", ['/', '/index.json'], async (c) => {
@@ -81,11 +82,11 @@ export class KoishiRegistry extends Service {
         return Array.from(this.cache.values())
     }
 
-    isSynchronized(): boolean {
+    isSynchronized(): boolean { // if all fetches are done, and npm changes is synchronized, then it is real synchronized
         return this.fetchTask === 0 && this.ctx.npm.synchronized
     }
 
-    shortnameOf(name: string) {
+    shortnameOf(name: string) { // get shortname of a koishi plugin package
         if (name.startsWith('@koishijs/plugin-')) return name.substring('@koishijs/plugin-'.length)
         const matches = name.match(/^(@[a-z0-9-~][a-z0-9-._~]*\/)?koishi-plugin-([a-z0-9-._~])*$/)
         if (matches !== null) return matches[1]
@@ -257,6 +258,7 @@ export class KoishiRegistry extends Service {
     }
 
     async update_uncached(): Promise<KoishiMarket.Object[]> {
+        // update those exist in ctx.npm.plugins, but not in our cache
         return (await Promise.all(this.ctx.npm.plugins
             .values()
             .filter(packageName => !this.cache.has(packageName))
@@ -264,7 +266,7 @@ export class KoishiRegistry extends Service {
         )).filter(x => x !== null)
     }
 
-    private async partialUpdate(record: ChangeRecord[]) {
+    private async partialUpdate(record: ChangeRecord[]) { // update the package of each provided records
         this.lastRefreshDate = new Date()
 
         await Promise.all(record.map(record => this.fresh_fetch(record.id)))
@@ -317,10 +319,6 @@ export class KoishiRegistry extends Service {
         const dataStr = await this.ctx.storage.getRaw("koishi.registry.cache")
         if (dataStr === null) return []
         return BSON.deserialize(Buffer.from(dataStr, 'base64'))['objects'] as KoishiMarket.Object[]
-    }
-
-    async synchronized() {
-        await this.quickRefresh()
     }
 }
 

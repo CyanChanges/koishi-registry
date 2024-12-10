@@ -67,10 +67,11 @@ export class NpmWatcher extends Service {
         this.options.endpoint = trimEnd(this.options.endpoint, '/')
     }
 
-    public async flushPlugins() {
+    public async flushPlugins() { // flush plugins to the store
         await this.ctx.storage.set("npm.plugins", [...this.plugins])
     }
 
+    // handles a stream, decode json string to a ChangeRecord, and process record, also trigger events
     async handle(stream: ReadableStream<Uint8Array>, update?: (seq: number) => void, stop_at: number = 0): Promise<boolean> {
         const decoder = new TextDecoderStream("utf-8")
         const reader = stream.pipeThrough(decoder).getReader()
@@ -113,6 +114,7 @@ export class NpmWatcher extends Service {
         return false
     }
 
+    // fetch from begin till a seq >= end
     private async fetchSpan(begin: number, end: number, update?: (seq: number) => void) {
         while (this.ctx.scope.isActive) {
             let body: ReadableStream<Uint8Array>
@@ -131,6 +133,7 @@ export class NpmWatcher extends Service {
         }
     }
 
+    // simple sequential fetch
     private async simpleFetch() {
         // const response = await this.ctx.http(`https://replicate.npmjs.com/_changes?filter=_selector&since=${this.seq}`, {
         //     responseType: (response) => response.body,
@@ -171,10 +174,12 @@ export class NpmWatcher extends Service {
     private async fetch() {
         const max_seq = await this.getMaxSeq() // get all commited seq (max number of seq)
 
+        // number of blocks till we synchronized with npm
         const blocks_till_sync = Math.ceil((max_seq - this.seq) / this.options.block_size)
 
         this.ctx.logger.info("start fetching with %c worker(s) (seq: %c)...", this.options.concurrent, this.seq)
 
+        // work queue, all blocks waiting for being fetched
         const block_queue = Array.from(
             { length: blocks_till_sync },
             (_, id) => ({
@@ -183,12 +188,12 @@ export class NpmWatcher extends Service {
                 end: this.seq + this.options.block_size * (id + 1) - 1
             })
         )
-        const block_map: Map<number, BlockTask> = new Map(
+        const block_map: Map<number, BlockTask> = new Map( // all blocks, for status tracking
             block_queue
                 .map(x => [x.id, Object.assign(x, { done: false })])
         )
 
-        const setComplete = (id: number) => {
+        const setComplete = (id: number) => { // set the status block with this `id` as completed
             block_map.get(id)!.done = true
             let last_done_task = null
             for (const block_task of block_map.values()) {
@@ -199,7 +204,7 @@ export class NpmWatcher extends Service {
                 this.seq = last_done_task.end
         }
 
-        const updateSeq = (id: number, seq: number) => {
+        const updateSeq = (id: number, seq: number) => { // update the current seq of the block with this `id`
             let last_done_task = null
             for (const block_task of block_map.values()) {
                 if (block_task.done) last_done_task = block_task
@@ -210,7 +215,7 @@ export class NpmWatcher extends Service {
         }
 
         const workers = Promise.all(Array.from(
-            { length: this.options.concurrent },
+            { length: this.options.concurrent }, // create `this.options.concurrent` workers.
             (_, i) => i
         ).map(async worker_id => {
             const logger = this.ctx.logger.extend(`worker-${worker_id}`)
@@ -235,28 +240,29 @@ export class NpmWatcher extends Service {
 
             logger.debug('\tquitting')
         }))
-        await workers
+        await workers // after all workers quit, we are synchronized with npm
         this.ctx.logger.info('synchronized with npm')
 
         this.synchronized = true
         await this.ctx.parallel(this, "npm/synchronized")
+
         this.ctx.logger.debug('start synchronizing with npm (seq: %c)', this.seq)
-        await this.simpleFetch() // Most records is synchronized, so we can just watch new changes here
+        await this.simpleFetch() // Since we are synchronized, so we can just watch all new changes here
     }
 
     override async start() {
         this.synchronized = false
 
-        if (await this.ctx.storage.has('npm.seq')) {
+        if (await this.ctx.storage.has('npm.seq')) { // restore seq if we can
             this.seq = await this.ctx.storage.get('npm.seq') as unknown as number;
             this.ctx.logger.debug("restored seq %c", this.seq)
         }
-        if (await this.ctx.storage.has('npm.plugins')) {
+        if (await this.ctx.storage.has('npm.plugins')) { // restore plugins if we can
             this.plugins = new Set(await this.ctx.storage.get('npm.plugins') as string[]);
             this.ctx.logger.debug("restored %c plugin(s)", this.plugins.size)
         }
 
-        this.fetchTask = this.fetch().catch(e => {
+        this.fetchTask = this.fetch().catch(e => { // catches error, log the error, finally cancel our scope (dispose the plugin)
             this.ctx.logger.error(e)
             this.ctx.scope.cancel(e)
         })
