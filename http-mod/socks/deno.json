@@ -1,0 +1,6 @@
+{
+  "name": "@cordisjs/plugin-http-socks",
+  "description": "Socks proxy agent support for @cordisjs/plugin-http",
+  "version": "1.0.0-alpha.0",
+  "exports": "./mod.ts"
+}

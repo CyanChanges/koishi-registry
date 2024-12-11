@@ -341,7 +341,7 @@ export class KoishiRegistry extends Service {
         // deno-lint-ignore no-explicit-any
         } catch (e: any | Error) {
             if (e?.message === 'Package have no versions')
-                this.ctx.logger.debug(`🔴 ${aligned(packageName)} \t\t| no version`)
+                this.ctx.logger.debug(`⭕ ${aligned(packageName)} \t\t| no version`)
             else {
                 this.ctx.logger.warn(`⚠️ ${aligned(packageName)} \t\t|`)
                 this.ctx.logger.warn(e)
