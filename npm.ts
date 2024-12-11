@@ -255,11 +255,11 @@ export class NpmWatcher extends Service {
 
         if (await this.ctx.storage.has('npm.seq')) { // restore seq if we can
             this.seq = await this.ctx.storage.get('npm.seq') as unknown as number;
-            this.ctx.logger.debug("restored seq %c", this.seq)
+            this.ctx.logger.debug("\trestored seq %C", this.seq)
         }
         if (await this.ctx.storage.has('npm.plugins')) { // restore plugins if we can
             this.plugins = new Set(await this.ctx.storage.get('npm.plugins') as string[]);
-            this.ctx.logger.debug("restored %c plugin(s)", this.plugins.size)
+            this.ctx.logger.debug("\trestored %C plugins", this.plugins.size)
         }
 
         this.fetchTask = this.fetch().catch(e => { // catches error, log the error, finally cancel our scope (dispose the plugin)

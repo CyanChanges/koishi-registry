@@ -70,12 +70,11 @@ export class KoishiRegistry extends Service {
     }
 
     override async start() {
-        this.ctx.logger.info("registry started")
         this.cache = new Map( // restore cache
             await this.readCache()
                 .then(x => x.map(o => [o.package.name, o] as const))
         )
-        this.ctx.logger.info(`restored %C entries`, this.cache.size)
+        if (this.cache.size) this.ctx.logger.info(`\trestored %C entries`, this.cache.size)
         this.ctx.on('dispose', () => this.writeCache())
 
         // when new plugin appears, update only the changed content
@@ -281,6 +280,11 @@ export class KoishiRegistry extends Service {
 
         const shortname = shortnameOf(packageName)
 
+        const [verified, insecure] = await Promise.all([
+            this.isVerified(packageName, manifest, pack),
+            this.isInsecure(packageName, manifest, pack)
+        ])
+
         return {
             downloads: { lastMonth: downloads.downloads! },
             dependents: 0,
@@ -289,8 +293,9 @@ export class KoishiRegistry extends Service {
             createdAt: times[0],
             updatedAt: times[times.length - 1],
             updated: pack.time.modified,
-            verified: await this.isVerified(packageName, manifest, pack),
-            insecure: await this.isInsecure(packageName, manifest, pack),
+            rating: verified ? 5 : (insecure ? 0 : 1),
+            verified: verified,
+            insecure: insecure,
             portable: !!(meta.koishi?.browser),
             package: {
                 name: packageName,
@@ -370,7 +375,7 @@ export class KoishiRegistry extends Service {
         await Promise.all(this.cache.entries().map(async ([packageName, object]) => {
             await this.scheduleNextTime()
 
-            const [isVerified, isInsecure] = await Promise.all([
+            const [verified, insecure] = await Promise.all([
                 // this.ctx.http<NpmRegistry.DownloadAPIResult>(
                 //     `${this.options.apiEndpoint}/downloads/range/last-month/${packageName}`, {
                 //         validateStatus: (status) => status === 200 || status === 404 || status === 429
@@ -387,8 +392,13 @@ export class KoishiRegistry extends Service {
             //
             // const downloads = downloadsResult.data
 
-            object.verified = isVerified
-            object.insecure = isInsecure
+            object.verified = verified
+            object.insecure = insecure
+            // temporary rating
+            // verified: 5
+            // insecure: 0
+            // other:    1
+            object.rating = verified ? 5 : (insecure ? 0 : 1)
             // object.downloads.lastMonth = downloads.downloads
         }))
     }
