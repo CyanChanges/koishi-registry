@@ -14,13 +14,12 @@ export abstract class Storage extends Service {
     }
 
     abstract has(key: string): Awaitable<boolean>;
-    async get(key: string): Promise<object | null> {
+    async get<T>(key: string): Promise<T | null> {
         const string = await this.getRaw(key)
         if (string !== null) return JSON.parse(string)
         return null
     }
-    // deno-lint-ignore no-explicit-any
-    async set(key: string, value: any): Promise<void> {
+    async set<T>(key: string, value: T): Promise<void> {
         await this.setRaw(key, JSON.stringify(value))
     };
     abstract remove(key: string): Awaitable<void>;

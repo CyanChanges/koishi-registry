@@ -1,5 +1,5 @@
-import { Registry as RegistryResult } from '@koishijs/registry'
-import { RemotePackage } from "npm:@koishijs/registry@7.0.3";
+import { Registry as RegistryResult, type IconSvg } from '@koishijs/registry'
+import { RemotePackage } from "@koishijs/registry";
 import type { Dict } from "cosmokit";
 
 export namespace NpmRegistry {
@@ -11,7 +11,7 @@ export namespace NpmRegistry {
     }
 
     export interface VersionMeta extends RemotePackage {
-        _npmUser: User
+        _npmUser: User // I don't know what is this
     }
 
     export interface OkResult extends RegistryResult {
@@ -101,10 +101,17 @@ export namespace KoishiMarket {
     }
 
     export interface Manifest {
-        public: string[]
-        description: string | Description
-        locales: string[]
+        icon?: IconSvg
+        hidden?: boolean
+        preview?: boolean
+        insecure?: boolean
+        browser?: boolean
+        category?: string
+        public?: string[]
+        exports?: Dict<string>
+        description: string | Dict<string>
         service: Service
+        locales: string[]
     }
 
     export interface Description {

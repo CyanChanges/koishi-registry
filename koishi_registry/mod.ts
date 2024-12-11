@@ -1,18 +1,34 @@
 import { Context, Service } from '../context.ts'
 import Schema from 'schemastery'
 import trimEnd from 'lodash.trimend'
-import { Awaitable } from 'cosmokit'
+import { Awaitable, type Dict } from 'cosmokit'
 import { ChangeRecord } from "../npm.ts";
 import HTTP from "@cordisjs/plugin-http";
+import { parse, compare, parseRange, rangeIntersects } from '@std/semver'
+import { Ensure, type RemotePackage } from '@koishijs/registry'
 import type { KoishiMarket, NpmRegistry } from "./types.ts";
 // import { ObjectList } from "./serializing.ts"; // whatevers, avsc doesn't work with my prefect Schema ;(
 import { BSON } from 'bson'
 import { Buffer } from "node:buffer";
 
+export type Feature = "downloads" | "rating" | "score" | "scope" | "package" | "manifest" | "verified" | "insecure"
+
+const stopWords = [
+    'koishi',
+    'plugin',
+    'bot',
+    'coolq',
+    'cqhttp',
+]
+
 export function aligned(s: string, pad = 35): string {
     if (s.length > pad)
         return s.substring(0, pad - 3) + '...'
     return s.padEnd(pad, ' ')
+}
+
+export function shortnameOf(name: string) { // get shortname of a koishi plugin package
+    return name.replace(/(koishi-|^@koishijs\/)plugin-/, '')
 }
 
 declare module 'cordis' {
@@ -28,15 +44,17 @@ declare module 'cordis' {
 }
 
 export class KoishiRegistry extends Service {
-    static inject = ['npm', 'http', 'hono', 'storage']
+    static inject = ['http', 'hono', 'storage']
 
     lastRefreshDate: Date
     cache: Map<string, KoishiMarket.Object> = new Map()
     fetchTask: number = 0
     _queries = 0
     _nextSecond?: Promise<void>
+    // httpAPI: HTTP // todo: use ctx.http.extend()
+    // httpMeta: HTTP
 
-    constructor(ctx: Context, protected options: Partial<KoishiRegistry.Config>) {
+    constructor(ctx: Context, protected options: Partial<KoishiRegistry.Config> = {}) {
         super(ctx, 'koishi')
 
         // this.options.endpoint = trimEnd(options.endpoint, '/')
@@ -44,6 +62,9 @@ export class KoishiRegistry extends Service {
         this.options.apiEndpoint = trimEnd(options.apiEndpoint, '/')
         this.options.npmURL = trimEnd(options.npmURL, '/')
         this.lastRefreshDate = new Date()
+        // this.httpAPI = ctx.http.extend({
+        //
+        // })
 
         ctx.on('npm/synchronized', () => this.quickRefresh())
     }
@@ -64,17 +85,38 @@ export class KoishiRegistry extends Service {
             const result = await this.getObjects()
             return c.json({
                 time: this.lastRefreshDate.toUTCString(),
+                version: 1, // remove this will cause Koishi client to fetch npm again
                 objects: result,
-                synchronized: this.isSynchronized()
-            } satisfies KoishiMarket.Result & { synchronized: boolean })
+                synchronized: this.isSynchronized(),
+                features: this.getFeatures()
+            } satisfies KoishiMarket.Result & { synchronized: boolean, features: Dict<boolean, Feature> })
         })
 
-        await this.update_uncached()
+        this.ctx.on('koishi/is-verified', (packageName) => packageName.startsWith('@koishijs/plugin-'))
+        this.ctx.on('koishi/is-insecure', (_, manifest) => !!manifest.insecure)
+
         if (!this.ctx.root.get('timer'))
             this.ctx.logger.warn('timer service not found, could not do scheduled refresh')
         this.ctx.inject(['timer'], (ctx: Context) => {
             ctx.setInterval(() => this.quickRefresh(), this.options.autoRefreshInterval! * 1000)
         })
+    }
+
+    public getFeatures(): Dict<boolean, Feature> {
+        return {
+            scope: false,
+            downloads: false,
+            rating: false,
+            score: false,
+            package: true,
+            manifest: true,
+            verified: true,
+            insecure: false
+        }
+    }
+
+    updateRefreshDate() {
+        this.lastRefreshDate = new Date()
     }
 
     // deno-lint-ignore require-await
@@ -83,13 +125,7 @@ export class KoishiRegistry extends Service {
     }
 
     isSynchronized(): boolean { // if all fetches are done, and npm changes is synchronized, then it is real synchronized
-        return this.fetchTask === 0 && this.ctx.npm.synchronized
-    }
-
-    shortnameOf(name: string) { // get shortname of a koishi plugin package
-        if (name.startsWith('@koishijs/plugin-')) return name.substring('@koishijs/plugin-'.length)
-        const matches = name.match(/^(@[a-z0-9-~][a-z0-9-._~]*\/)?koishi-plugin-([a-z0-9-._~])*$/)
-        if (matches !== null) return matches[1]
+        return this.fetchTask === 0 && !!this.ctx.get('npm')?.synchronized
     }
 
     async isVerified(packageName: string, manifest: KoishiMarket.Manifest, meta?: NpmRegistry.Result): Promise<boolean> {
@@ -123,91 +159,143 @@ export class KoishiRegistry extends Service {
         }
     }
 
+    static isCompatible(range: string, remote: Pick<RemotePackage, 'peerDependencies'>) {
+        const { peerDependencies = {} } = remote
+        const declaredVersion = peerDependencies['koishi']
+        try {
+            return declaredVersion && rangeIntersects(parseRange(range), parseRange(declaredVersion))
+        } catch {
+            return false
+        }
+    }
+
     private async _fresh_fetch(packageName: string): Promise<KoishiMarket.Object | null> {
         let metaResponse: HTTP.Response<NpmRegistry.Result>
-        let downloadsResponse: HTTP.Response<NpmRegistry.DownloadAPIResult>
+        // let downloadsResponse: HTTP.Response<NpmRegistry.DownloadAPIResult>
 
         await this.scheduleNextTime()
 
         while (true) { // this part is so complex, that's all because npm removed the _bulk_get api
-            [metaResponse, downloadsResponse] = await Promise.all([
-                this.ctx.http<NpmRegistry.Result>(
-                    `${this.options.metaEndpoint}/${packageName}`, {
+            // metaResponse = await Promise.all([
+            metaResponse = await this.ctx.http<NpmRegistry.Result>(`${this.options.metaEndpoint}/${packageName}`, {
                         validateStatus: (status) => status === 200 || status === 404 || status === 429
-                    }
-                ),
-                this.ctx.http<NpmRegistry.DownloadAPIResult>(
-                    `${this.options.apiEndpoint}/downloads/point/last-month/${packageName}`, {
-                        validateStatus: (status) => status === 200 || status === 404 || status === 429
-                    }
-                ),
-            ])
+            })
+                // this.ctx.http<NpmRegistry.DownloadAPIResult>(
+                //     `${this.options.apiEndpoint}/downloads/point/last-month/${packageName}`, {
+                //         validateStatus: (status) => status === 200 || status === 404 || status === 429
+                //     }
+                // ),
+            // ])
 
-            const responses = [metaResponse, downloadsResponse]
+            const responses = [metaResponse]
             if (responses.every(r => r.status === 200)) break
-            if (metaResponse.status === 404 || downloadsResponse.status === 404)
+            if (metaResponse.status === 404)
                 return null
-            if (responses.find(r => r.status === 429))
+            if (responses.find(r => r.status === 429)) {
+                this.ctx.logger.debug(`🟡 ${aligned(packageName)} \t\t| rate limited`)
                 await this.scheduleNextTime()
+            }
         }
 
-        const [meta, downloads] = [metaResponse.data, downloadsResponse.data]
+        const [pack, downloads] = [metaResponse.data, { downloads: null }]
 
-        if (!meta?.['dist-tags']?.['latest']) throw new Error("Could not find latest version")
-        const latestVersion = meta?.["dist-tags"]?.['latest']
-        const latestMeta = meta.versions[latestVersion]
+        if (!pack?.versions) throw new Error("Package have no versions")
+
+        const compatibles = Object.values(pack.versions).filter((remote) => {
+            return KoishiRegistry.isCompatible('4', remote)
+        }).sort((a, b) => compare(parse(b.version), parse(a.version)))
+        const times = compatibles.map(item => pack.time[item.version]).sort()
+        if (compatibles.length === 0) return null
+        const meta = compatibles[compatibles.length - 1]
+        const latest = compatibles[compatibles.length - 1]
 
         const links: KoishiMarket.Links = {
             npm: `${this.options.npmURL}/${packageName}`
         }
 
-        if (meta?.bugs?.url)
-            links.bugs = meta.bugs.url
-        if (meta?.homepage)
-            links.homepage = meta.homepage
-        if (meta?.repository?.url)
-            links.repository = meta.repository.url
+        if (pack?.bugs?.url)
+            links.bugs = pack.bugs.url
+        if (pack?.homepage)
+            links.homepage = pack.homepage
+        if (pack?.repository?.url)
+            links.repository = pack.repository.url
 
         const manifest: KoishiMarket.Manifest = {
-            public: [/* TODO */],
+            hidden: Ensure.boolean(meta.koishi?.hidden),
+            preview: Ensure.boolean(meta.koishi?.preview),
+            insecure: Ensure.boolean(meta.koishi?.insecure),
+            browser: Ensure.boolean(meta.koishi?.browser),
+            category: Ensure.string(meta.koishi?.category),
+            public: Ensure.array(meta.koishi?.public),
+            description: Ensure.dict(meta.koishi?.description) || Ensure.string(meta.description, ''),
+            locales: Ensure.array(meta.koishi?.locales, []),
             service: {
-                required: latestMeta?.koishi?.service?.required ?? [],
-                optional: latestMeta?.koishi?.service?.optional ?? [],
-                implements: latestMeta?.koishi?.service?.implements ?? [],
-            },
-            locales: latestMeta?.koishi?.locales ?? [],
-            description: latestMeta?.koishi?.description ?? latestMeta.description,
+                required: Ensure.array(meta.koishi?.service?.required, []),
+                optional: Ensure.array(meta.koishi?.service?.optional, []),
+                implements: Ensure.array(meta.koishi?.service?.implements, []),
+            }
         }
+
+        if (typeof manifest.description === 'string') {
+            manifest.description = manifest.description.slice(0, 1024)
+        } else if (manifest.description) {
+            for (const key in manifest.description) {
+                manifest.description[key] = manifest.description[key].slice(0, 1024)
+            }
+        }
+
+        meta.keywords = Ensure.array(meta.keywords, []).filter((keyword) => {
+            if (!keyword.includes(':')) return true
+            if (keyword === 'market:hidden') {
+                manifest.hidden = true
+            } else if (keyword.startsWith('required:')) {
+                manifest.service.required.push(keyword.slice(9))
+            } else if (keyword.startsWith('optional:')) {
+                manifest.service.optional.push(keyword.slice(9))
+            } else if (keyword.startsWith('impl:')) {
+                manifest.service.implements.push(keyword.slice(5))
+            } else if (keyword.startsWith('locale:')) {
+                manifest.locales.push(keyword.slice(7))
+            }
+        })
+
+        const shortname = shortnameOf(packageName)
 
         return {
             downloads: { lastMonth: downloads.downloads },
             dependents: 0,
             category: 'other', // todo
-            shortname: this.shortnameOf(packageName)!,
-            createdAt: meta.time.created,
-            updatedAt: meta.time.modified,
-            updated: meta.time.modified,
-            verified: await this.isVerified(packageName, manifest, meta),
-            insecure: await this.isInsecure(packageName, manifest, meta),
-            portable: !!(latestMeta.koishi?.browser),
+            shortname: shortname,
+            createdAt: times[0],
+            updatedAt: times[times.length - 1],
+            updated: pack.time.modified,
+            verified: await this.isVerified(packageName, manifest, pack),
+            insecure: await this.isInsecure(packageName, manifest, pack),
+            portable: !!(meta.koishi?.browser),
             package: {
                 name: packageName,
-                keywords: meta.keywords,
-                version: latestVersion,
-                description: latestMeta.description,
+                keywords: (meta.keywords ?? [])
+                    .map(keyword => keyword.toLowerCase())
+                    .filter((keyword) => {
+                        return !keyword.includes(':')
+                            && !shortname.includes(keyword)
+                            && !stopWords.some(word => keyword.includes(word))
+                    }),
+                version: latest.version,
+                description: meta.description,
                 // publisher: latestMeta['_npmUser'],
-                publisher: meta.maintainers[0],
-                maintainers: meta.maintainers,
-                license: meta.license,
-                date: meta.time[latestVersion],
+                publisher: pack.maintainers[0],
+                maintainers: pack.maintainers,
+                license: pack.license,
+                date: pack.time[latest.version],
                 links: links,
-                contributors: []
+                contributors: meta.author ? [meta.author] : []
             },
             flags: {
                 insecure: 0
             },
             manifest: manifest,
-            publishSize: latestMeta.dist.unpackedSize,
+            publishSize: meta.dist.unpackedSize,
         } satisfies KoishiMarket.Object
     }
 
@@ -227,7 +315,7 @@ export class KoishiRegistry extends Service {
             return object
         // deno-lint-ignore no-explicit-any
         } catch (e: any | Error) {
-            if (e?.message === 'Could not find latest version')
+            if (e?.message === 'Package have no versions')
                 this.ctx.logger.debug(`🔴 ${aligned(packageName)} \t\t| no version`)
             else {
                 this.ctx.logger.warn(`⚠️ ${aligned(packageName)} \t\t|`)
@@ -247,27 +335,8 @@ export class KoishiRegistry extends Service {
         return object
     }
 
-    public async refresh_all(): Promise<KoishiMarket.Object[]> {
-        this.lastRefreshDate = new Date()
-
-        return (await Promise.all(
-            this.ctx.npm.plugins
-                .values()
-                .map(packageName => this.fresh_fetch(packageName))
-        )).filter(x => x !== null)
-    }
-
-    async update_uncached(): Promise<KoishiMarket.Object[]> {
-        // update those exist in ctx.npm.plugins, but not in our cache
-        return (await Promise.all(this.ctx.npm.plugins
-            .values()
-            .filter(packageName => !this.cache.has(packageName))
-            .map(packageName => this.fresh_fetch(packageName))
-        )).filter(x => x !== null)
-    }
-
     private async partialUpdate(record: ChangeRecord[]) { // update the package of each provided records
-        this.lastRefreshDate = new Date()
+        this.updateRefreshDate()
 
         await Promise.all(record.map(record => this.fresh_fetch(record.id)))
     }
@@ -279,25 +348,28 @@ export class KoishiRegistry extends Service {
         this.ctx.logger.debug('triggered quickRefresh')
 
         await Promise.all(this.cache.entries().map(async ([packageName, object]) => {
-            const [downloadsResult, isVerified, isInsecure] = await Promise.all([
-                this.ctx.http<NpmRegistry.DownloadAPIResult>(
-                    `${this.options.apiEndpoint}/downloads/last-month/${packageName}`, {
-                        validateStatus: (status) => status === 200 || status === 404 || status === 429
-                    }
-                ),
+            await this.scheduleNextTime()
+
+            const [isVerified, isInsecure] = await Promise.all([
+                // this.ctx.http<NpmRegistry.DownloadAPIResult>(
+                //     `${this.options.apiEndpoint}/downloads/last-month/${packageName}`, {
+                //         validateStatus: (status) => status === 200 || status === 404 || status === 429
+                //     }
+                // ),
                 this.isVerified(packageName, object.manifest),
                 this.isInsecure(packageName, object.manifest),
             ])
-            if (downloadsResult.status === 404) { // invalidate the cache if not found
-                this.cache.delete(packageName)
-                this.writeCache()
-                return
-            }
-            const downloads = downloadsResult.data
+            // if (downloadsResult.status === 404) // skip if not found
+            //     return
+            //
+            // if (downloadsResult.status === 429) // skip if rate limited
+            //     return
+            //
+            // const downloads = downloadsResult.data
 
             object.verified = isVerified
             object.insecure = isInsecure
-            object.downloads.lastMonth = downloads.downloads
+            // object.downloads.lastMonth = downloads.downloads
         }))
     }
 
@@ -307,18 +379,24 @@ export class KoishiRegistry extends Service {
         self._debounce = true
         this.ctx.setTimeout(async () => {
             // this.ctx.logger.debug('-------- write cache')
-            const buf = Buffer.from(BSON.serialize({
-                objects: Array.from(this.cache.values())
-            }))
-            await this.ctx.storage.setRaw("koishi.registry.cache", buf.toString('base64'))
+            await this.ctx.storage.set("koishi.registry.cache", Array.from(this.cache.values()))
+            // const buf = Buffer.from(BSON.serialize({
+            //     objects: Array.from(this.cache.values())
+            // }))
+            // await this.ctx.storage.setRaw("koishi.registry.cache", buf.toString('base64'))
             self._debounce = false
         }, 200)
     }
 
     public async readCache(): Promise<KoishiMarket.Object[]> {
-        const dataStr = await this.ctx.storage.getRaw("koishi.registry.cache")
-        if (dataStr === null) return []
-        return BSON.deserialize(Buffer.from(dataStr, 'base64'))['objects'] as KoishiMarket.Object[]
+        try {
+            const data = await this.ctx.storage.get<KoishiMarket.Object[]>("koishi.registry.cache")
+            if (data === null) return []
+            return data
+        } catch {
+            return []
+        }
+        // return BSON.deserialize(Buffer.from(dataStr, 'base64'))['objects'] as KoishiMarket.Object[]
     }
 }
 
@@ -340,9 +418,46 @@ export namespace KoishiRegistry {
             .number()
             .min(0)
             .max(1000)
-            .default(30)
+            .default(20)
             .description("Query Per Second: Limiting queries can be sent to `metaEndpoint` and `apiEndpoint`, 0 for no limit")
     })
 }
 
-export default KoishiRegistry
+export class NpmProvider extends Service {
+    static inject = ['koishi', 'npm']
+
+    constructor(ctx: Context) {
+        super(ctx, 'koishi.npm');
+    }
+
+    override async start() {
+        await this.fetch_uncached_from_npm()
+    }
+
+    public async refresh_all_from_npm(): Promise<KoishiMarket.Object[]> {
+        this.ctx.koishi.updateRefreshDate()
+
+        return (await Promise.all(
+            this.ctx.npm.plugins
+                .values()
+                .map(packageName => this.ctx.koishi.fresh_fetch(packageName))
+        )).filter(x => x !== null)
+    }
+
+    async fetch_uncached_from_npm(): Promise<KoishiMarket.Object[]> {
+        // update those exist in ctx.npm.plugins, but not in our cache
+        return (await Promise.all(this.ctx.npm.plugins
+            .values()
+            .filter(packageName => !this.ctx.koishi.cache.has(packageName))
+            .map(packageName => this.ctx.koishi.fresh_fetch(packageName))
+        )).filter(x => x !== null)
+    }
+
+}
+
+export default (ctx: Context, config: KoishiRegistry.Config) => {
+    ctx.plugin(KoishiRegistry, config)
+    ctx.inject(['npm'], (ctx) => {
+        ctx.plugin(NpmProvider)
+    })
+}

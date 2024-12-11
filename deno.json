@@ -1,10 +1,10 @@
 {
   "imports": {
-    "@cordisjs/plugin-http": "npm:@cordisjs/plugin-http@^0.6.3",
     "@cordisjs/plugin-logger": "npm:@cordisjs/plugin-logger@^0.1.1",
     "@cordisjs/timer": "npm:@cordisjs/timer@^0.3.2",
     "@koishijs/registry": "npm:@koishijs/registry@^7.0.3",
     "@std/assert": "jsr:@std/assert@^1.0.9",
+    "@std/semver": "jsr:@std/semver@^1.0.3",
     "avsc": "npm:avsc@^5.7.7",
     "bson": "npm:bson@^6.10.1",
     "cordis": "npm:cordis@^3.18.1",
@@ -28,7 +28,7 @@
       "exclude": ["no-namespace", "ban-types"]
     }
   },
-  "workspace": ["./hono-mod"],
+  "workspace": ["./hono-mod", "./http-mod/http", "./http-mod/socks"],
   "compilerOptions": {
     "jsx": "precompile",
     "jsxImportSource": "hono/jsx",

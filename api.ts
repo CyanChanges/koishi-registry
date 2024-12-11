@@ -12,7 +12,8 @@ export function apply(ctx: Context) {
         ctx.hono.get("/api/status", (c) => {
             return c.json({
                 updateAt: ctx.koishi.lastRefreshDate.toUTCString(),
-                synchronized: ctx.npm.synchronized
+                synchronized: ctx.npm.synchronized,
+                features: ctx.koishi.getFeatures(),
             })
         })
     })

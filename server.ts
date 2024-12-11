@@ -33,6 +33,11 @@ export class Server extends Hono {
         this.router = router
 
         this.ctx.on('ready', ()=>{
+            this.notFound((c) => {
+                // this.ctx.logger.debug("page not found\t\t", c.req.path)
+                return c.text("Not Found", 404)
+            })
+
             this._server = Deno.serve(
                 {
                     hostname: config.host,

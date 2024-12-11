@@ -23,5 +23,4 @@ app.plugin(NpmWatcher, { block_size: 1000, concurrent: 50 })
 app.plugin(KoishiRegistry)
 app.plugin(API)
 
-
 await app.start()
