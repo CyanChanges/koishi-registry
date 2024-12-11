@@ -1,19 +1,25 @@
 import * as cordis from "cordis";
 import { Server } from "./server.ts";
 import Schema from 'schemastery'
+import HttpService from '@cordisjs/plugin-http'
+import * as LoggerService from "@cordisjs/plugin-logger";
+import TimerService from '@cordisjs/timer'
+import SchemaService from "@cordisjs/schema";
 
-// export interface Context {
-//     fetch(
-//         request: Request,
-//         // deno-lint-ignore ban-types
-//         env?: {},
-//         ctx?: ExecutionContext,
-//     ): Awaitable<Response>;
-// }
+export interface Events<C extends Context = Context> extends cordis.Events<C> {
+}
+
+export interface Context {
+    [Context.events]: Events<this>
+}
 
 export class Context extends cordis.Context {
     constructor(config: Context.Config = {}) {
         super();
+        this.plugin(SchemaService)
+        // this.plugin(TimerService)
+        this.plugin(LoggerService)
+        this.plugin(HttpService)
         this.plugin(Server, config.server);
     }
 }
@@ -28,8 +34,10 @@ export namespace Context {
 
 }
 
-export abstract class Service<T = any, C extends Context = Context> extends cordis.Service<T, C> {
-    override [cordis.Service.setup]() {
+// export { Service } from '@cordisjs/core'
+
+export abstract class Service<C extends Context = Context> extends cordis.Service<C> {
+    override [cordis.symbols.setup]() {
         this.ctx = new Context() as C
     }
 }

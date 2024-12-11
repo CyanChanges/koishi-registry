@@ -1,6 +1,8 @@
 {
   "imports": {
-    "@cordisjs/plugin-logger": "npm:@cordisjs/plugin-logger@^0.1.1",
+    "@cordisjs/core": "npm:@cordisjs/core@^3.18.1",
+    "@cordisjs/plugin-logger": "npm:@cordisjs/plugin-logger@^0",
+    "@cordisjs/schema": "npm:@cordisjs/schema@^0.1.1",
     "@cordisjs/timer": "npm:@cordisjs/timer@^0.3.2",
     "@koishijs/registry": "npm:@koishijs/registry@^7.0.3",
     "@std/assert": "jsr:@std/assert@^1.0.9",
@@ -21,7 +23,8 @@
   ],
   "tasks": {
     "start": "deno run --allow-all main.ts",
-    "test": "deno test --ignore=./hono-mod --no-check"
+    "test": "deno test --ignore=./hono-mod --no-check",
+    "cordis": "cordis"
   },
   "lint": {
     "rules": {

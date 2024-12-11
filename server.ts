@@ -1,7 +1,7 @@
 import { Context } from "./context.ts";
 import Schema from 'schemastery'
 import { Service } from 'cordis'
-import { Hono, type ExecutionContext } from "hono";
+import { Hono } from "hono";
 import { TrieRouter } from "hono/router/trie-router"
 import type { BlankInput, H, Handler, RouterRoute } from "hono/types";
 
@@ -38,13 +38,14 @@ export class Server extends Hono {
                 return c.text("Not Found", 404)
             })
 
-            this._server = Deno.serve(
-                {
-                    hostname: config.host,
-                    port: config.port
-                },
-                this.fetch
-            )
+            if (!this._server)
+                this._server = Deno.serve(
+                    {
+                        hostname: config.host,
+                        port: config.port
+                    },
+                    this.fetch
+                )
 
             this.ctx.on('dispose', ()=>this._server?.shutdown())
         })

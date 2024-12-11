@@ -181,7 +181,7 @@ export class KoishiRegistry extends Service {
                         validateStatus: (status) => status === 200 || status === 404 || status === 429
             })
                 // this.ctx.http<NpmRegistry.DownloadAPIResult>(
-                //     `${this.options.apiEndpoint}/downloads/point/last-month/${packageName}`, {
+                //     `${this.options.apiEndpoint}/downloads/range/last-month/${packageName}`, {
                 //         validateStatus: (status) => status === 200 || status === 404 || status === 429
                 //     }
                 // ),
@@ -262,7 +262,7 @@ export class KoishiRegistry extends Service {
         const shortname = shortnameOf(packageName)
 
         return {
-            downloads: { lastMonth: downloads.downloads },
+            downloads: { lastMonth: downloads.downloads! },
             dependents: 0,
             category: 'other', // todo
             shortname: shortname,
@@ -352,7 +352,7 @@ export class KoishiRegistry extends Service {
 
             const [isVerified, isInsecure] = await Promise.all([
                 // this.ctx.http<NpmRegistry.DownloadAPIResult>(
-                //     `${this.options.apiEndpoint}/downloads/last-month/${packageName}`, {
+                //     `${this.options.apiEndpoint}/downloads/range/last-month/${packageName}`, {
                 //         validateStatus: (status) => status === 200 || status === 404 || status === 429
                 //     }
                 // ),
@@ -455,7 +455,7 @@ export class NpmProvider extends Service {
 
 }
 
-export default (ctx: Context, config: KoishiRegistry.Config) => {
+export function apply(ctx: Context, config: KoishiRegistry.Config) {
     ctx.plugin(KoishiRegistry, config)
     ctx.inject(['npm'], (ctx) => {
         ctx.plugin(NpmProvider)

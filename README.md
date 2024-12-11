@@ -12,6 +12,10 @@ $ deno task start
 Listening on http://0.0.0.0:8080/
 ```
 
+It takes time to synchronize for the first time.
+
+You can configure 
+
 Check http://127.0.0.1:8080/api/plugins,
 should return currently found plugins.
 (It's empty list for a while because no plugins found now, please sit and relax)
