@@ -9,12 +9,30 @@ deno install
 ## Run
 ```shell
 $ deno task start
-Listening on http://0.0.0.0:8000/
+Listening on http://0.0.0.0:8080/
 ```
 
-Check http://127.0.0.1:8000/plugins,
+Check http://127.0.0.1:8080/api/plugins,
 should return currently found plugins.
 (It's empty list for a while because no plugins found now, please sit and relax)
+
+Check http://127.0.0.1:8080/index.json
+should return a Koishi Registry like JSON of all found plugins.
+(The `objects` may be an empty list, because no plugins found now, please sit and relax)
+
+### API Endpoint
+#### /api/status
+```typescript
+let returns: {
+  "synchronized": boolean, // If synchronized with npm
+  "updateAt": string, // UTC Date String
+  features: Record<Feature, boolean> // Field Features
+}
+```
+#### /api/plugins
+```typescript
+let returns: string[] // a list of package name of koishi plugins
+```
 
 ## License
 This project is under the [AGPL 3.0](https://www.gnu.org/licenses/agpl-3.0.en.html#license-text) license with the following additional restrictions:
