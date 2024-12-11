@@ -1,4 +1,4 @@
-import { Registry as RegistryResult, type IconSvg } from '@koishijs/registry'
+import { Registry as RegistryResult, User as RegistryUser, type IconSvg } from '@koishijs/registry'
 import { RemotePackage } from "@koishijs/registry";
 import type { Dict } from "cosmokit";
 
@@ -72,17 +72,19 @@ export namespace KoishiMarket {
         publishSize: number
     }
 
+    export interface User extends RegistryUser {}
+
     export interface Package {
         name: string
         keywords: string[]
         version: string
         description: string
-        publisher: NpmRegistry.User
-        maintainers: NpmRegistry.User[]
+        publisher: User
+        maintainers: User[]
         license: string
         date: string
         links: Links
-        contributors: NpmRegistry.User[]
+        contributors: User[]
     }
 
     export interface Links {

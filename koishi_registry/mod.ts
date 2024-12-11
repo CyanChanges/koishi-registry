@@ -201,9 +201,16 @@ export class KoishiRegistry extends Service {
 
         if (!pack?.versions) throw new Error("Package have no versions")
 
+        const convertUser = (user: NpmRegistry.User): KoishiMarket.User => {
+            user = structuredClone(user)
+            if (!user.username) user.username = 'koishi'
+            return user
+        }
+
         const compatibles = Object.values(pack.versions).filter((remote) => {
             return KoishiRegistry.isCompatible('4', remote)
         }).sort((a, b) => compare(parse(b.version), parse(a.version)))
+
         const times = compatibles.map(item => pack.time[item.version]).sort()
         if (compatibles.length === 0) return null
         const meta = compatibles[compatibles.length - 1]
@@ -284,12 +291,12 @@ export class KoishiRegistry extends Service {
                 version: latest.version,
                 description: meta.description,
                 // publisher: latestMeta['_npmUser'],
-                publisher: pack.maintainers[0],
-                maintainers: pack.maintainers,
+                publisher: convertUser(pack.maintainers[0]),
+                maintainers: pack.maintainers.map(convertUser),
                 license: pack.license,
                 date: pack.time[latest.version],
                 links: links,
-                contributors: meta.author ? [meta.author] : []
+                contributors: meta.author ? [convertUser(meta.author)] : []
             },
             flags: {
                 insecure: 0
