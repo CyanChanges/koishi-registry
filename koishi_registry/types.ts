@@ -18,7 +18,7 @@ export namespace NpmRegistry {
         _id: string,
         _rev: string,
         'dist-tags': Dict<string, string>,
-        maintainers: User[],
+        maintainers: (string | User)[],
         keywords: string[],
         versions: Dict<VersionMeta>,
         bugs?: { url?: string },

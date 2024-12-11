@@ -1,4 +1,5 @@
 {
+  "version": "0.1.0",
   "imports": {
     "@cordisjs/core": "npm:@cordisjs/core@^3.18.1",
     "@cordisjs/plugin-logger": "npm:@cordisjs/plugin-logger@^0",

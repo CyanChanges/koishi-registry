@@ -201,7 +201,20 @@ export class KoishiRegistry extends Service {
 
         if (!pack?.versions) throw new Error("Package have no versions")
 
-        const convertUser = (user: NpmRegistry.User): KoishiMarket.User => {
+        const convertUser = (user: NpmRegistry.User | string): KoishiMarket.User => {
+            if (typeof user === 'string') {
+                const matches = user.match(/^([\w-_.]+) ?<(.*)>$/)
+                if (matches === null) return {
+                    name: user,
+                    username: user,
+                    email: null!
+                }
+                else return {
+                    name: matches.at(0),
+                    username: matches.at(0),
+                    email: matches.at(1)!
+                }
+            }
             user = structuredClone(user)
             if (!user.username) user.username = 'koishi'
             return user
