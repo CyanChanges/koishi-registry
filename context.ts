@@ -1,4 +1,4 @@
-import { compare, parse, SemVer } from '@std/semver'
+import { compare, parse, SemVer, format } from '@std/semver'
 import * as cordis from "cordis";
 import { Server } from "./server.ts";
 import { StorageLocalStorage } from "./storage/localstorage.ts";
@@ -36,18 +36,28 @@ export class Context extends cordis.Context {
 
 export class AppInfo {
     isUpdated: Promise<boolean>
+    previous: SemVer | null
+    version: SemVer = parse(meta.version)
 
     constructor(protected ctx: Context) {
         this.isUpdated = this.check()
+        this.previous = null
         this.ctx.scope.ensure(()=>this.isUpdated.then())
     }
 
     async check(): Promise<boolean> {
         try {
-            const previous = await this.ctx.storage.getRaw("version")
-            if (previous === null || compare(parse(previous), parse(meta.version)) !== 0) {
-                this.ctx.logger.info("detected update %c -> %c", previous ?? '<unknown>', meta.version)
-                this.ctx.emit("core/updated", previous ? parse(previous) : parse("0.0.1"), parse(meta.version))
+            const current = this.version
+            const original = await this.ctx.storage.getRaw("version")
+            if (original === null) {
+                this.ctx.logger.info("updated to %c", format(current))
+                this.ctx.emit("core/updated", parse("0.0.1"), current)
+                return true
+            }
+            const previous = this.previous = parse(original)
+            if (compare(previous, current) !== 0) {
+                this.ctx.logger.info("detected update %c -> %c", format(previous), format(current))
+                this.ctx.emit("core/updated", previous, current)
                 return true
             } else return false
         } finally {
@@ -68,9 +78,7 @@ export namespace Context {
 }
 
 export abstract class Service<C extends Context = Context> extends cordis.Service<C> {
-    override [cordis.symbols.setup]() {
-        this.ctx = new Context() as C
-    }
+    protected declare ctx: C
 }
 // export { Service } from '@cordisjs/core'
 

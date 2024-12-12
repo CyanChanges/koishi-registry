@@ -4,12 +4,12 @@ import trimEnd from 'lodash.trimend'
 import { Awaitable, type Dict } from 'cosmokit'
 import { ChangeRecord } from "../npm.ts";
 import HTTP from "@cordisjs/plugin-http";
-import { parse, compare, parseRange, rangeIntersects } from '@std/semver'
+import { parse, compare, parseRange, rangeIntersects, difference } from '@std/semver'
 import { Ensure, type RemotePackage } from '@koishijs/registry'
 import type { KoishiMarket, NpmRegistry } from "./types.ts";
 // import { ObjectList } from "./serializing.ts"; // whatevers, avsc doesn't work with my prefect Schema ;(
-import { BSON } from 'bson'
-import { Buffer } from "node:buffer";
+// import { BSON } from 'bson'
+// import { Buffer } from "node:buffer";
 
 export type Feature = "downloads" | "rating" | "score" | "scope" | "package" | "manifest" | "verified" | "insecure"
 
@@ -96,7 +96,7 @@ export class KoishiRegistry extends Service {
 
         if (!this.ctx.root.get('timer'))
             this.ctx.logger.warn('timer service not found, could not do scheduled refresh')
-        this.ctx.inject(['timer'], (ctx: Context) => {
+        this.ctx.inject(['timer'], (ctx) => {
             ctx.setInterval(() => this.quickRefresh(), this.options.autoRefreshInterval! * 1000)
         })
     }
@@ -422,7 +422,13 @@ export class KoishiRegistry extends Service {
     }
 
     public async readCache(): Promise<Dict<KoishiMarket.Object | null>> {
-        if (await this.ctx.info.isUpdated) return Object.create(null)
+        if (await this.ctx.info.isUpdated) {
+            if (
+                ['major', 'premajor', 'minor', 'preminor'] // if breaking changes
+                    .includes(difference(this.ctx.info.version, this.ctx.info.previous!)!)
+            ) // drop cache
+                return Object.create(null)
+        }
         try {
             const data = await this.ctx.storage.get<Dict<KoishiMarket.Object | null>>("koishi.registry.cache")
             if (data === null) return Object.create(data)
