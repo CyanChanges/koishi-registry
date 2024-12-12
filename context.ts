@@ -11,7 +11,7 @@ import * as LoggerService from "@cordisjs/plugin-logger";
 import meta from './deno.json' with { type: 'json' }
 
 export interface Events<in C extends Context = Context> extends cordis.Events<C> {
-    'core/updated'(previous: SemVer | null, current: SemVer): void
+    'core/updated'(previous: SemVer, current: SemVer): void
 }
 
 export interface Context {
@@ -47,7 +47,7 @@ export class AppInfo {
             const previous = await this.ctx.storage.getRaw("version")
             if (previous === null || compare(parse(previous), parse(meta.version)) !== 0) {
                 this.ctx.logger.info("detected update %c -> %c", previous ?? '<unknown>', meta.version)
-                this.ctx.emit("core/updated", previous ? parse(previous) : null, parse(meta.version))
+                this.ctx.emit("core/updated", previous ? parse(previous) : parse("0.0.1"), parse(meta.version))
                 return true
             } else return false
         } finally {

@@ -332,16 +332,19 @@ export class KoishiRegistry extends Service {
 
             const object = await this._fresh_fetch(packageName)
             this.cache.set(packageName, object)
-            if (object === null) return null
             this.writeCache()
+            if (object === null) return null
 
             this.ctx.logger.debug(`✅ ${aligned(packageName)} \t\t| complete`)
 
             return object
         // deno-lint-ignore no-explicit-any
         } catch (e: any | Error) {
-            if (e?.message === 'Package have no versions')
+            if (e?.message === 'Package have no versions') {
+                this.cache.set(packageName, null)
+                this.writeCache()
                 this.ctx.logger.debug(`⭕ ${aligned(packageName)} \t\t| no version`)
+            }
             else {
                 this.ctx.logger.warn(`⚠️ ${aligned(packageName)} \t\t|`)
                 this.ctx.logger.warn(e)
