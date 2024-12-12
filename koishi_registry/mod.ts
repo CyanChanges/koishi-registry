@@ -47,7 +47,7 @@ export class KoishiRegistry extends Service {
     static inject = ['http', 'hono', 'storage']
 
     lastRefreshDate: Date
-    cache: Map<string, KoishiMarket.Object> = new Map()
+    cache: Map<string, KoishiMarket.Object | null> = new Map()
     fetchTask: number = 0
     _queries = 0
     _nextSecond?: Promise<void>
@@ -72,7 +72,7 @@ export class KoishiRegistry extends Service {
     override async start() {
         this.cache = new Map( // restore cache
             await this.readCache()
-                .then(x => x.map(o => [o.package.name, o] as const))
+                .then(Object.entries)
         )
         if (this.cache.size) this.ctx.logger.info(`\trestored %C entries`, this.cache.size)
         this.ctx.on('dispose', () => this.writeCache())
@@ -120,7 +120,7 @@ export class KoishiRegistry extends Service {
 
     // deno-lint-ignore require-await
     async getObjects(): Promise<KoishiMarket.Object[]> {
-        return Array.from(this.cache.values())
+        return Array.from(this.cache.values().filter(x=>!!x))
     }
 
     isSynchronized(): boolean { // if all fetches are done, and npm changes is synchronized, then it is real synchronized
@@ -221,7 +221,7 @@ export class KoishiRegistry extends Service {
 
         const compatibles = Object.values(pack.versions).filter((remote) => {
             return KoishiRegistry.isCompatible('4', remote)
-        }).sort((a, b) => compare(parse(b.version), parse(a.version)))
+        }).sort((a, b) => compare(parse(a.version), parse(b.version)))
 
         const times = compatibles.map(item => pack.time[item.version]).sort()
         if (compatibles.length === 0) return null
@@ -325,14 +325,14 @@ export class KoishiRegistry extends Service {
     }
 
     // fetch a package from scratch
-    async fresh_fetch(packageName: string): Promise<KoishiMarket.Object | null> {
+    public async fresh_fetch(packageName: string): Promise<KoishiMarket.Object | null> {
         this.fetchTask++
         try {
             this.ctx.logger.debug(`🟡 ${aligned(packageName)} \t\t| fetching`)
 
             const object = await this._fresh_fetch(packageName)
-            if (object === null) return null
             this.cache.set(packageName, object)
+            if (object === null) return null
             this.writeCache()
 
             this.ctx.logger.debug(`✅ ${aligned(packageName)} \t\t| complete`)
@@ -356,7 +356,7 @@ export class KoishiRegistry extends Service {
     // prefer cached result
     public async fetch(packageName: string): Promise<KoishiMarket.Object | null> {
         const object = this.cache.get(packageName)
-        if (typeof object === 'undefined' || object == null) return await this.fresh_fetch(packageName)
+        if (typeof object === 'undefined') return await this.fresh_fetch(packageName)
         return object
     }
 
@@ -372,8 +372,8 @@ export class KoishiRegistry extends Service {
         this.lastRefreshDate = new Date()
         this.ctx.logger.debug('triggered quickRefresh')
 
-        await Promise.all(this.cache.entries().map(async ([packageName, object]) => {
-            await this.scheduleNextTime()
+        await Promise.all(this.cache.entries().filter(([_, object])=>!!object).map(async ([packageName, object]) => {
+            // await this.scheduleNextTime()
 
             const [verified, insecure] = await Promise.all([
                 // this.ctx.http<NpmRegistry.DownloadAPIResult>(
@@ -381,8 +381,8 @@ export class KoishiRegistry extends Service {
                 //         validateStatus: (status) => status === 200 || status === 404 || status === 429
                 //     }
                 // ),
-                this.isVerified(packageName, object.manifest),
-                this.isInsecure(packageName, object.manifest),
+                this.isVerified(packageName, object!.manifest),
+                this.isInsecure(packageName, object!.manifest),
             ])
             // if (downloadsResult.status === 404) // skip if not found
             //     return
@@ -392,13 +392,13 @@ export class KoishiRegistry extends Service {
             //
             // const downloads = downloadsResult.data
 
-            object.verified = verified
-            object.insecure = insecure
+            object!.verified = verified
+            object!.insecure = insecure
             // temporary rating
             // verified: 5
             // insecure: 0
             // other:    1
-            object.rating = verified ? 5 : (insecure ? 0 : 1)
+            object!.rating = verified ? 5 : (insecure ? 0 : 1)
             // object.downloads.lastMonth = downloads.downloads
         }))
     }
@@ -409,7 +409,7 @@ export class KoishiRegistry extends Service {
         self._debounce = true
         this.ctx.setTimeout(async () => {
             // this.ctx.logger.debug('-------- write cache')
-            await this.ctx.storage.set("koishi.registry.cache", Array.from(this.cache.values()))
+            await this.ctx.storage.set("koishi.registry.cache", Object.fromEntries(this.cache.entries()))
             // const buf = Buffer.from(BSON.serialize({
             //     objects: Array.from(this.cache.values())
             // }))
@@ -418,13 +418,14 @@ export class KoishiRegistry extends Service {
         }, 200)
     }
 
-    public async readCache(): Promise<KoishiMarket.Object[]> {
+    public async readCache(): Promise<Dict<KoishiMarket.Object | null>> {
+        if (await this.ctx.info.isUpdated) return Object.create(null)
         try {
-            const data = await this.ctx.storage.get<KoishiMarket.Object[]>("koishi.registry.cache")
-            if (data === null) return []
+            const data = await this.ctx.storage.get<Dict<KoishiMarket.Object | null>>("koishi.registry.cache")
+            if (data === null) return Object.create(data)
             return data
         } catch {
-            return []
+            return Object.create(null)
         }
         // return BSON.deserialize(Buffer.from(dataStr, 'base64'))['objects'] as KoishiMarket.Object[]
     }

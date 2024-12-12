@@ -1,4 +1,5 @@
 import { Context } from './context.ts'
+import {} from './koishi_registry'
 
 export const inject = ['hono']
 
@@ -8,13 +9,30 @@ export function apply(ctx: Context) {
             return c.json([...ctx.npm.plugins.values()]);
         });
     })
-    ctx.inject(['npm', 'koishi'], (ctx) => {
+    ctx.inject(['koishi'], (ctx) => {
         ctx.hono.get("/api/status", (c) => {
             return c.json({
                 updateAt: ctx.koishi.lastRefreshDate.toUTCString(),
                 synchronized: ctx.npm.synchronized,
                 features: ctx.koishi.getFeatures(),
             })
+        })
+        ctx.hono.get("/api/:name/", async (c) => {
+            const { name } = c.req.param()
+            const result = await ctx.koishi.fetch(name)
+            if (result === null)
+                return c.json({
+                    name: name,
+                    status: 404,
+                    message: "not found"
+                }, 404)
+            else
+                return c.json({
+                    name: name,
+                    status: 200,
+                    data: result,
+                    message: "fetched"
+                })
         })
     })
 }

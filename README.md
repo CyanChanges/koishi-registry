@@ -14,7 +14,7 @@ Listening on http://0.0.0.0:8080/
 
 It takes time to synchronize for the first time.
 
-You can configure 
+You can configure configurations in main.ts.
 
 Check http://127.0.0.1:8080/api/plugins,
 should return currently found plugins.

@@ -1,4 +1,5 @@
-import { Context, Service } from "../context.ts";
+import { Context } from "../context.ts";
+import { Service } from "cordis";
 import { Awaitable } from "cosmokit";
 
 declare module 'cordis' {

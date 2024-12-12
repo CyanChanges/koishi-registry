@@ -1,5 +1,4 @@
 import { Context } from "./context.ts";
-import { StorageLocalStorage } from "./storage/localstorage.ts";
 import NpmWatcher from "./npm.ts";
 import Logger from 'reggol'
 import * as KoishiRegistry from './koishi_registry'
@@ -13,7 +12,6 @@ const app = new Context({
         port: 8080
     }
 });
-app.plugin(StorageLocalStorage)
 app.plugin(NpmWatcher, { block_size: 1000, concurrent: 50 })
 app.plugin(KoishiRegistry)
 app.plugin(API)
