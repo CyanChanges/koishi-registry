@@ -12,8 +12,8 @@ const app = new Context({
         port: 8080
     }
 });
-app.plugin(NpmWatcher, { block_size: 1000, concurrent: 50 })
 app.plugin(KoishiRegistry)
+app.plugin(NpmWatcher, { block_size: 1000, concurrent: 50 })
 app.plugin(API)
 
 await app.start()

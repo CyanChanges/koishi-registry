@@ -495,6 +495,8 @@ export class NpmProvider extends Service {
 
 }
 
+export const Config: Schema = KoishiRegistry.Config
+
 export function apply(ctx: Context, config: KoishiRegistry.Config) {
     ctx.plugin(KoishiRegistry, config)
     ctx.inject(['npm'], (ctx) => {
