@@ -3,13 +3,14 @@ import NpmWatcher from "./npm.ts";
 import Logger from 'reggol'
 import * as KoishiRegistry from './koishi_registry'
 import * as API from './api.ts'
+import "jsr:@std/dotenv/load";
 
 // TODO: use cordis loader
 
 Logger.levels.base = 5
 const app = new Context({
     server: {
-        port: 8080
+        port: Deno.env.get('PORT') ? parseInt(Deno.env.get('PORT')!) : 8080
     }
 });
 app.plugin(KoishiRegistry)
