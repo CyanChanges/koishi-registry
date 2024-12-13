@@ -45,7 +45,7 @@ export function isKoishiPlugin(id: string): boolean {
 }
 
 export class NpmWatcher extends Service {
-    static inject = ['http', 'storage']
+    static inject = ['http']
 
     fetchTask?: Promise<void>
 
@@ -238,7 +238,7 @@ export class NpmWatcher extends Service {
 
             }
 
-            logger.debug('\tquitting')
+            // logger.debug('\tquitting')
         }))
         await workers // after all workers quit, we are synchronized with npm
         this.ctx.logger.info('synchronized with npm')

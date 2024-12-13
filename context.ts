@@ -1,10 +1,9 @@
-import { compare, parse, SemVer, format } from '@std/semver'
+import { compare, format, parse, SemVer } from '@std/semver'
 import * as cordis from "cordis";
 import { Server } from "./server.ts";
-import { StorageLocalStorage } from "./storage/localstorage.ts";
+import Storage from "./storage";
 import Logger from 'reggol'
 import Schema from 'schemastery'
-import TimerService from '@cordisjs/timer'
 import SchemaService from "@cordisjs/schema";
 import HttpService from '@cordisjs/plugin-http'
 import * as LoggerService from "@cordisjs/plugin-logger";
@@ -29,37 +28,49 @@ export class Context extends cordis.Context {
         // this.plugin(TimerService)
         this.plugin(HttpService)
         this.plugin(Server, config.server)
-        this.plugin(StorageLocalStorage)
+        this.plugin(Storage)
         this.provide('info', new AppInfo(this), true)
     }
 }
 
+export enum Updated {
+    None,
+    Upgrade,
+    Downgrade
+}
+
 export class AppInfo {
     isUpdated: Promise<boolean>
-    previous: SemVer | null
+    isUpgrade: Promise<boolean>
+    isDowngrade: Promise<boolean>
+    checkTask: Promise<Updated>
+    previous: SemVer | null = null
     version: SemVer = parse(meta.version)
 
     constructor(protected ctx: Context) {
-        this.isUpdated = this.check()
-        this.previous = null
-        this.ctx.scope.ensure(()=>this.isUpdated.then())
+        this.checkTask = this.check()
+        this.isUpdated = new Promise(r => this.checkTask.then(x => x !== Updated.None).then(r))
+        this.isUpgrade = new Promise(r => this.checkTask.then(x => x === Updated.Upgrade).then(r))
+        this.isDowngrade = new Promise(r => this.checkTask.then(x => x === Updated.Downgrade).then(r))
+        this.ctx.scope.ensure(() => this.checkTask.then())
     }
 
-    async check(): Promise<boolean> {
+    async check(): Promise<Updated> {
         try {
             const current = this.version
             const original = await this.ctx.storage.getRaw("version")
             if (original === null) {
                 this.ctx.logger.info("updated to %c", format(current))
                 this.ctx.emit("core/updated", parse("0.0.1"), current)
-                return true
+                return Updated.Upgrade
             }
             const previous = this.previous = parse(original)
-            if (compare(previous, current) !== 0) {
+            const ordering = compare(previous, current)
+            if (ordering !== 0) {
                 this.ctx.logger.info("detected update %c -> %c", format(previous), format(current))
                 this.ctx.emit("core/updated", previous, current)
-                return true
-            } else return false
+                return ordering == 1 ? Updated.Downgrade : Updated.Upgrade
+            } else return Updated.None
         } finally {
             await this.ctx.storage.setRaw("version", meta.version)
         }

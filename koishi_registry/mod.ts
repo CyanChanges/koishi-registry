@@ -4,7 +4,7 @@ import trimEnd from 'lodash.trimend'
 import { Awaitable, type Dict } from 'cosmokit'
 import { ChangeRecord } from "../npm.ts";
 import HTTP from "@cordisjs/plugin-http";
-import { parse, compare, parseRange, rangeIntersects, difference } from '@std/semver'
+import { compare, difference, parse, parseRange, Range, rangeIntersects } from '@std/semver'
 import { Ensure, type RemotePackage } from '@koishijs/registry'
 import type { KoishiMarket, NpmRegistry } from "./types.ts";
 // import { ObjectList } from "./serializing.ts"; // whatevers, avsc doesn't work with my prefect Schema ;(
@@ -40,11 +40,13 @@ declare module 'cordis' {
         'koishi/is-verified'(packageName: string, manifest: KoishiMarket.Manifest, meta?: NpmRegistry.Result): Awaitable<boolean | void>
 
         'koishi/is-insecure'(packageName: string, manifest: KoishiMarket.Manifest, meta?: NpmRegistry.Result): Awaitable<boolean | void>
+
+        'koishi/before-refresh'(): void
     }
 }
 
 export class KoishiRegistry extends Service {
-    static inject = ['http', 'hono', 'storage']
+    static inject = ['http', 'hono']
 
     lastRefreshDate: Date
     cache: Map<string, KoishiMarket.Object | null> = new Map()
@@ -114,7 +116,8 @@ export class KoishiRegistry extends Service {
         }
     }
 
-    updateRefreshDate() {
+    beforeRefresh() {
+        this.ctx.emit("koishi/before-refresh")
         this.lastRefreshDate = new Date()
     }
 
@@ -158,11 +161,11 @@ export class KoishiRegistry extends Service {
         }
     }
 
-    static isCompatible(range: string, remote: Pick<RemotePackage, 'peerDependencies'>) {
+    static isCompatible(range: Range, remote: Pick<RemotePackage, 'peerDependencies'>) {
         const { peerDependencies = {} } = remote
         const declaredVersion = peerDependencies['koishi']
         try {
-            return declaredVersion && rangeIntersects(parseRange(range), parseRange(declaredVersion))
+            return declaredVersion && rangeIntersects(range, parseRange(declaredVersion))
         } catch {
             return false
         }
@@ -198,8 +201,6 @@ export class KoishiRegistry extends Service {
 
         const [pack, downloads] = [metaResponse.data, { downloads: null }]
 
-        if (!pack?.versions) throw new Error("Package have no versions")
-
         const convertUser = (user: NpmRegistry.User | string): KoishiMarket.User => {
             if (typeof user === 'string') {
                 const matches = user.match(/^([\w-_.]+) ?<(.*)>$/)
@@ -219,14 +220,17 @@ export class KoishiRegistry extends Service {
             return user
         }
 
+        if (!pack?.versions) throw new Error("Package have no versions")
+
         const compatibles = Object.values(pack.versions).filter((remote) => {
-            return KoishiRegistry.isCompatible('4', remote)
+            return KoishiRegistry.isCompatible(parseRange('4'), remote)
         }).sort((a, b) => compare(parse(a.version), parse(b.version)))
 
-        const times = compatibles.map(item => pack.time[item.version]).sort()
-        if (compatibles.length === 0) return null
-        const meta = compatibles[compatibles.length - 1]
-        const latest = compatibles[compatibles.length - 1]
+        const versions = compatibles.filter(pack => typeof pack.deprecated === 'string')
+        const times = versions.map(item => pack.time[item.version]).sort()
+        if (versions.length === 0) throw new Error("Package have no versions")
+        const meta = versions[versions.length - 1]
+        const latest = versions[versions.length - 1]
 
         const links: KoishiMarket.Links = {
             npm: `${this.options.npmURL}/${packageName}`
@@ -364,7 +368,7 @@ export class KoishiRegistry extends Service {
     }
 
     private async partialUpdate(record: ChangeRecord[]) { // update the package of each provided records
-        this.updateRefreshDate()
+        this.beforeRefresh()
 
         await Promise.all(record.map(record => this.fresh_fetch(record.id)))
     }
@@ -372,7 +376,7 @@ export class KoishiRegistry extends Service {
 
     // Refresh downloads, (todo: rating)
     public async quickRefresh() {
-        this.lastRefreshDate = new Date()
+        this.beforeRefresh()
         this.ctx.logger.debug('triggered quickRefresh')
 
         await Promise.all(this.cache.entries().filter(([_, object])=>!!object).map(async ([packageName, object]) => {
@@ -423,10 +427,11 @@ export class KoishiRegistry extends Service {
 
     public async readCache(): Promise<Dict<KoishiMarket.Object | null>> {
         if (await this.ctx.info.isUpdated) {
-            if (
-                ['major', 'premajor', 'minor', 'preminor'] // if breaking changes
+            if (true || // force update this time
+                await this.ctx.info.isDowngrade || // if downgrade
+                ['major', 'premajor', 'minor', 'preminor'] // or if breaking changes
                     .includes(difference(this.ctx.info.version, this.ctx.info.previous!)!)
-            ) // drop cache
+            ) // drop the cache
                 return Object.create(null)
         }
         try {
@@ -475,7 +480,7 @@ export class NpmProvider extends Service {
     }
 
     public async refresh_all_from_npm(): Promise<KoishiMarket.Object[]> {
-        this.ctx.koishi.updateRefreshDate()
+        this.ctx.koishi.beforeRefresh()
 
         return (await Promise.all(
             this.ctx.npm.plugins

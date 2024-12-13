@@ -1,12 +1,20 @@
 # Koishi registry fetch app
 
+For end-user, use our
+**Partner registry**
+https://kp.itzdrli.cc/
+
+> [!IMPORTANT]  
+> If you find an unexpected behaviour different with Koishi's [Official registry](https://registry.koishi.chat/),
+> please file an issue.
+
 ## Install
 Deno is required.
 ```shell
 deno install
 ```
 
-## Run
+## Usage
 ```shell
 $ deno task start
 Listening on http://0.0.0.0:8080/
@@ -37,6 +45,19 @@ let returns: {
 ```typescript
 let returns: string[] // a list of package name of koishi plugins
 ```
+
+## Todo
+- [ ] Refactor `NpmWatcher` to provide a more reliable change information.
+- [ ] Refactor `KoishiRegistry` cache structure to provide Quick Patch functionality.
+- [ ] Support `show_deprecated`, `show_incompatible`, `recover_unpublished` params.
+- [ ] Support all fields of official registry
+  - [x] verified - defaults to same behaviour with `@koishijs/registry`, 
+  - [x] insecure - official insecure detect algorithm and manually marked list is unreachable
+                   manually controlled by `koishi/is-insecure`
+  - [ ] score    - npm search api is unreliable
+  - [ ] rating   - rating algorithm is private (official plugins weights much, so simply marked all official plugin 5 star)
+  - [x] portable - detect `koishi.browser` from package meta
+  - [ ] downloads - removed due to the hard rate limiting of npm downloads api
 
 ## License
 This project is under the [AGPL 3.0](https://www.gnu.org/licenses/agpl-3.0.en.html#license-text) license with the following additional restrictions:

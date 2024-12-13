@@ -10,6 +10,7 @@ declare module 'cordis' {
 
 export abstract class Storage extends Service {
     protected constructor(ctx: Context, name: string) {
+        ctx.provide('storage', undefined, true) // now a builtin service
         super(ctx, 'storage', true);
         ctx.set(`storage.${name}`, this)
     }
