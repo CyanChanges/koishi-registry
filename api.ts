@@ -12,6 +12,7 @@ export function apply(ctx: Context) {
     ctx.inject(['koishi'], (ctx) => {
         ctx.hono.get("/api/status", (c) => {
             return c.json({
+                version: ctx.info.version,
                 updateAt: ctx.koishi.lastRefreshDate.toUTCString(),
                 synchronized: ctx.koishi.isSynchronized(),
                 features: ctx.koishi.getFeatures(),
