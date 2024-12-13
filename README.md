@@ -6,7 +6,7 @@ https://kp.itzdrli.cc/
 
 > [!IMPORTANT]  
 > If you find an unexpected behaviour different with Koishi's [Official registry](https://registry.koishi.chat/),
-> please file an issue.
+> please open an issue.
 
 ## Install
 Deno is required.
@@ -15,6 +15,12 @@ deno install
 ```
 
 ## Usage
+Copy and set the port from example, otherwise the default port is `8080`
+```shell
+$ cp example.env .env
+```
+
+Start
 ```shell
 $ deno task start
 Listening on http://0.0.0.0:8080/
