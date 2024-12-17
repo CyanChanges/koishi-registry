@@ -3,6 +3,7 @@ import NpmWatcher from "./npm.ts";
 import Logger from 'reggol'
 import * as KoishiRegistry from './koishi_registry'
 import * as API from './api.ts'
+import "jsr:@std/dotenv/load";
 
 // TODO: use cordis loader
 
