@@ -9,7 +9,7 @@ import * as API from './api.ts'
 Logger.levels.base = 5
 const app = new Context({
     server: {
-        port: 8080
+        port: Deno.env.get('PORT') ? parseInt(Deno.env.get('PORT')!) : 8080
     }
 });
 app.plugin(KoishiRegistry)

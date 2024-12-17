@@ -6,7 +6,7 @@ https://kp.itzdrli.cc/
 
 > [!IMPORTANT]  
 > If you find an unexpected behaviour different with Koishi's [Official registry](https://registry.koishi.chat/),
-> please file an issue.
+> please open an issue.
 
 ## Install
 Deno is required.
@@ -15,6 +15,9 @@ deno install
 ```
 
 ## Usage
+```shell
+$ cp .env.example .env
+```
 ```shell
 $ deno task start
 Listening on http://0.0.0.0:8080/
