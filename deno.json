@@ -26,7 +26,8 @@
     "./analyzer": "./analyzer/mod.ts"
   },
   "unstable": [
-    "sloppy-imports"
+    "sloppy-imports",
+    "net"
   ],
   "tasks": {
     "start": "deno run --allow-all main.ts",
