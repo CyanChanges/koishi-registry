@@ -42,7 +42,8 @@ export class Server extends Hono {
                 this._server = Deno.serve(
                     {
                         hostname: config.host,
-                        port: config.port
+                        port: config.port,
+                        reusePort: true
                     },
                     this.fetch
                 )
