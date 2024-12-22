@@ -65,7 +65,8 @@ let returns: string[] // a list of package name of koishi plugins
 ## License
 
 The project is All rights reserved.
-You are allowed to deploy the software only after approve in project issues (https://github.com/CyanChanges/koishi-registry),
+Public deployment requires authorization in the [Project Issue](https://github.com/CyanChanges/koishi-registry),
+No authorization required for personal local deployments.
 use `Context.prototype.plugin` to plug your own plugin to make modification,
 without modify the original codebase.
 Any monkeypatch to manipulate original plugin behaviour is not allowed
