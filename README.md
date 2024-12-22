@@ -1,5 +1,25 @@
 # Koishi registry fetch app
 
+> [!CAUTION]
+> **Close source since `0.3.0`**.
+> 
+> Due to violation of the project's license  
+> (the mirror with domain `cyans.icu` from GitHub@lovemilk2333, forum.koishi.xyz@zhuhansan666),  
+> This Project is archived, and will be continue developing in private. Further fixes and updates won't be available.
+> 
+> Contact me on [contact@cyans.me](mailto:contact@cyans.me) if you need help, or want to join our private.
+
+> [!NOTE]
+> End users will still be able to use our
+> **Partner registry**.  
+> https://kp.itzdrli.cc/  
+> Our **Partner registry** still be updated with latest features and fixes.
+
+---
+
+
+# Original README
+
 > [!IMPORTANT]  
 > All rights reserved 2024 Copyright Cyan Changes/koishi-registry authors  
 > More details in [#License](https://github.com/CyanChanges/koishi-registry/blob/main/LICENSE)
