@@ -1,5 +1,9 @@
 # Koishi registry fetch app
 
+> [!IMPORTANT]  
+> All rights reserved 2024 Copyright Cyan Changes/koishi-registry authors  
+> More details in [#License](https://github.com/CyanChanges/koishi-registry/blob/main/LICENSE)
+
 For end-user, use our
 **Partner registry**
 https://kp.itzdrli.cc/
