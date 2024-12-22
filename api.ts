@@ -39,7 +39,8 @@ export function apply(ctx: Context) {
         })
         ctx.hono.get("/api/registry/:name", async (c) => {
             const name = c.req.param('name')!
-            const result = await ctx.koishi.fetchObject(name)
+            const should_refresh = c.req.query("use_uncached")
+            const result = await ctx.koishi.fetchObject(name, !!should_refresh, !!should_refresh)
             if (result === null)
                 return c.json({
                     name: name,
