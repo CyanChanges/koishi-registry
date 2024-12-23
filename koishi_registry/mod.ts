@@ -90,7 +90,6 @@ export class KoishiMeta {
             if (!this._next) {
                 await (this._next = new Promise((resolve, reject) => {
                     if (!this.context.root.get('timer')) {
-                        this.context.logger.warn('timer service not found, could not reschedule queries')
                         reject("timer service not available")
                     }
                     this.context.setTimeout(() => {
@@ -115,7 +114,6 @@ export class KoishiMeta {
                 validateStatus: (status) => status === 200 || status === 404 || status === 429
             }).catch(e =>{
                 if (HTTP.Error.is(e)) {
-                    this.ctx.logger.debug(`🟡 ${aligned(name)} \t\t| error thrown`)
                     this.ctx.logger.debug(e)
                 }
                 return Promise.reject(e)
@@ -125,7 +123,6 @@ export class KoishiMeta {
             if (response.status === 404) return null
             if (response.status === 429) {
                 retries--
-                this.ctx.logger.debug(`🟡 ${aligned(name)} \t\t| rate limited`)
                 return await this._schedule().then(fetcher)
             }
             throw new Error("unreachable")
@@ -224,7 +221,6 @@ export class RegistryGenerator extends Service {
     }
 
     override async start() {
-        // if (this.meta.cached_size) this.ctx.logger.info(`\trestored %C entries`, this.meta.cached_size)
         // this.ctx.on('dispose', () => this.saveCache())
 
         if (!this.ctx.root.get('timer'))
@@ -403,14 +399,11 @@ export class RegistryGenerator extends Service {
     public async generateObject(packageName: string): Promise<KoishiMarket.Object | null> {
         this.fetch_task++
         try {
-            this.ctx.logger.debug(`🟡 ${aligned(packageName)} \t\t| fetching`)
 
             const object = await this._generateObject(packageName)
             this.object_cache.set(packageName, object)
             // this.saveCache()
             if (object === null) return null
-
-            this.ctx.logger.debug(`✅ ${aligned(packageName)} \t\t| complete`)
 
             return object
         // deno-lint-ignore no-explicit-any
@@ -418,10 +411,8 @@ export class RegistryGenerator extends Service {
             if (e?.message === 'Package have no version') {
                 this.object_cache.set(packageName, null)
                 // this.saveCache()
-                this.ctx.logger.debug(`⭕  ${aligned(packageName)} \t\t| no version`)
             }
             else {
-                this.ctx.logger.warn(`⚠️ ${aligned(packageName)} \t\t|`)
                 this.ctx.logger.warn(e)
             }
             return null
@@ -456,7 +447,6 @@ export class RegistryGenerator extends Service {
     // Refresh downloads, (todo: rating)
     public async refreshFast() {
         this.beforeRefresh()
-        this.ctx.logger.debug('triggered quickRefresh')
 
         await Promise.all(this.object_cache.entries().filter(([_, object]) => !!object).map(async ([packageName, object]) => {
             if (!object) return
@@ -490,7 +480,6 @@ export class RegistryGenerator extends Service {
     //     if (self?._debounce) return
     //     self._debounce = true
     //     this.ctx.setTimeout(async () => {
-    //         // this.ctx.logger.debug('-------- write cache')
     //         await this.ctx.storage.set("koishi.registry.cache", Object.fromEntries(this.meta_cache.entries()))
     //         // const buf = Buffer.from(BSON.serialize({
     //         //     objects: Array.from(this.meta_cache.values())
@@ -584,7 +573,6 @@ export class NpmProvider extends Service {
         if (self?._debounce) return
         self._debounce = true
         this.ctx.setTimeout(async () => {
-            // this.ctx.logger.debug('-------- write cache')
             await this.ctx.storage.set("koishi.npm.cache", Object.fromEntries(this.cache.entries()))
             // const buf = Buffer.from(BSON.serialize({
             //     objects: Array.from(this.cache.values())
