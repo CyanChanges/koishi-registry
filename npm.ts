@@ -49,7 +49,7 @@ export class NpmWatcher extends Service {
 
     fetchTask?: Promise<void>
 
-    _seq = 8000000 // 2022-01(Koishi v4)
+    _seq = 0 // Let's refresh from the peace (the Genshin Impact of Npm, which is begins at 0)
     plugins: Map<string, number> = new Map()
     synchronized = false
 
@@ -67,11 +67,10 @@ export class NpmWatcher extends Service {
         this.options.endpoint = trimEnd(this.options.endpoint, '/')
     }
 
-    public async flushPlugins() { // flush plugins to the store
-        await this.ctx.storage.set("npm.plugins", Object.fromEntries(this.plugins.entries()))
+    public async flushPlugins() {
+        await this.ctx.storage.set("npm.cache.plugins", Object.fromEntries(this.plugins.entries()))
     }
 
-    // handles a stream, decode json string to a ChangeRecord, and process record, also trigger events
     async handle(stream: ReadableStream<Uint8Array>, update?: (seq: number) => void, stop_at: number = 0): Promise<boolean> {
         const decoder = new TextDecoderStream("utf-8")
         const reader = stream.pipeThrough(decoder).getReader()
@@ -95,7 +94,6 @@ export class NpmWatcher extends Service {
 
             if (records.length > 0) {
                 const last = records[records.length - 1]
-                // this.ctx.logger.debug(`Fetched ${records.length} packages from ${this.options.endpoint}`)
                 update?.(last.seq)
                 this.ctx.parallel(this, 'npm/fetched-packages', records).then()
                 if (stop_at > 0 && last.seq >= stop_at) return true
@@ -108,13 +106,11 @@ export class NpmWatcher extends Service {
                 filtered.forEach(record => this.plugins.set(record.id, record.seq))
                 await this.flushPlugins()
                 this.ctx.parallel(this, 'npm/fetched-plugins', filtered).then()
-                // console.log('-- data: ', filtered)
             }
         }
         return false
     }
 
-    // fetch from begin till a seq >= end
     private async fetchSpan(begin: number, end: number, update?: (seq: number) => void) {
         while (this.ctx.scope.isActive) {
             let body: ReadableStream<Uint8Array>
@@ -133,15 +129,7 @@ export class NpmWatcher extends Service {
         }
     }
 
-    // simple sequential fetch
     private async simpleFetch() {
-        // const response = await this.ctx.http(`https://replicate.npmjs.com/_changes?filter=_selector&since=${this.seq}`, {
-        //     responseType: (response) => response.body,
-        //     method: 'POST',
-        //     data: {
-        //         selector: { '_id': { $regex: '^.*koishi.*$' } }
-        //     }
-        // })
 
         while (this.ctx.scope.isActive) {
             let body: ReadableStream<Uint8Array>
@@ -172,12 +160,10 @@ export class NpmWatcher extends Service {
     }
 
     private async fetch() {
-        const max_seq = await this.getMaxSeq() // get all commited seq (max number of seq)
-
-        // number of blocks till we synchronized with npm
+        const max_seq = await this.getMaxSeq()
+        
         const blocks_till_sync = Math.ceil((max_seq - this.seq) / this.options.block_size)
 
-        this.ctx.logger.info("start fetching with %c worker(s) (seq: %c)...", this.options.concurrent, this.seq)
 
         // work queue, all blocks waiting for being fetched
         const block_queue = Array.from(
@@ -218,17 +204,17 @@ export class NpmWatcher extends Service {
             { length: this.options.concurrent }, // create `this.options.concurrent` workers.
             (_, i) => i
         ).map(async worker_id => {
-            const logger = this.ctx.logger.extend(`worker-${worker_id}`)
+            const logger = this.ctx.logger.extend(`w-${worker_id}`)
 
             while (true) {
                 const block = block_queue.shift()
                 if (!block) break
                 const { id, begin, end } = block
 
-                logger.debug('\tfetching span %C ~ %C', begin, end)
+                logger.debug('\t%C ~ %C', begin, end)
                 await this.fetchSpan(begin, end, seq => updateSeq(id, seq))
                 setComplete(id)
-                logger.debug('\tcomplete span %C ~ %C (remaining %C)', begin, end,
+                logger.debug('\t%C ~ %C (remaining %C)', begin, end,
                     Array.from(block_map
                         .values()
                         .filter(x => !x.done)
@@ -237,44 +223,39 @@ export class NpmWatcher extends Service {
                 )
 
             }
-
-            // logger.debug('\tquitting')
         }))
-        await workers // after all workers quit, we are synchronized with npm
+        await workers
         this.ctx.logger.info('synchronized with npm')
 
         this.synchronized = true
         await this.ctx.parallel(this, "npm/synchronized")
 
-        this.ctx.logger.debug('start synchronizing with npm (seq: %c)', this.seq)
-        await this.simpleFetch() // Since we are synchronized, so we can just watch all new changes here
+        await this.simpleFetch() 
     }
 
     override async start() {
         this.synchronized = false
 
         await this.ctx.info.checkTask
-        if (!satisfies(this.ctx.info.previous ?? parse("0.0.1"), parseRange("^0.2"))) {
+        if (!satisfies(this.ctx.info.previous ?? parse("0.0.1"), parseRange("^0.2.99"))) {
             this.ctx.storage.remove('npm.seq')
-            this.ctx.storage.remove('npm.plugins')
+            this.ctx.storage.remove('npm.cache.plugins')
         }
-        if (await this.ctx.storage.has('npm.seq')) { // restore seq if we can
+        if (await this.ctx.storage.has('npm.seq'))
             this.seq = await this.ctx.storage.get('npm.seq') as unknown as number;
-            this.ctx.logger.debug("\trestored seq %C", this.seq)
-        }
-        if (await this.ctx.storage.has('npm.plugins')) { // restore plugins if we can
-            this.plugins = new Map(Object.entries((await this.ctx.storage.get<Dict<number>>('npm.plugins'))!));
-            this.ctx.logger.info("\trestored %C plugins", this.plugins.size)
-        }
+        
+        if (await this.ctx.storage.has('npm.cache.plugins'))
+            this.plugins = new Map(Object.entries((await this.ctx.storage.get<Dict<number>>('npm.cache.plugins'))!));
+        
 
 
         this._startFetchTask()
     }
 
     private _startFetchTask() {
-        this.fetchTask = this.fetch().catch(e => { // catches error, log the error, finally cancel our scope (dispose the plugin)
+        this.fetchTask = this.fetch().catch(e => {
             this.ctx.logger.error(e)
-            this.ctx.scope.cancel(e)
+            // this.ctx.scope.cancel(e) api disapr in cords v 4
         })
     }
 }
