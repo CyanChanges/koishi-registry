@@ -16,6 +16,10 @@
 > Our **Partner registry** stayed updated with latest features and fixes.
 
 ---
+### 0.2.99
+Fix a bug that makes the KG feature of app doesn't work.
+
+---
 
 
 # Original README
