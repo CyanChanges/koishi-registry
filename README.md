@@ -13,7 +13,7 @@
 > End users will still be able to use our
 > **Partner registry**.  
 > https://kp.itzdrli.cc/  
-> Our **Partner registry** still be updated with latest features and fixes.
+> Our **Partner registry** stayed updated with latest features and fixes.
 
 ---
 
