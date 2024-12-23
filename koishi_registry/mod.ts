@@ -158,7 +158,7 @@ export class KoishiMeta {
                 await this.set(name, cached)
                 return cached
             } else
-                return await this.query(name)
+                return await this.query(name, true)
         }
         return result
     }
