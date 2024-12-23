@@ -4,7 +4,7 @@ import { Server } from "./server.ts";
 import Storage from "./storage";
 import CacheService from "./cache.ts";
 import Logger from 'reggol'
-import Schema from 'schemastery'
+import Schema from 'schemastery' // should be in cordis (@cordisjs/schema) now
 import SchemaService from "@cordisjs/schema";
 import HttpService from '@cordisjs/plugin-http'
 import * as LoggerService from "@cordisjs/plugin-logger";
@@ -25,9 +25,9 @@ export class Context extends cordis.Context {
         super();
         const logger = new Logger("app")
         logger.info("Fetcher/%C Deno/%C", meta.version, Deno.version.deno)
-        this.plugin(SchemaService)
+        // this.plugin(SchemaService) present in v4 ig
         this.plugin(LoggerService)
-        // this.plugin(TimerService)
+        // this.plugin(TimerService) plugged
         this.plugin(HttpService)
         this.plugin(Server, config.server)
         this.plugin(Storage)
