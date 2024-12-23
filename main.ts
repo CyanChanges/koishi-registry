@@ -9,8 +9,8 @@ import "@std/dotenv/load";
 
 // TODO: use cordis loader
 
-const host = Deno.env.get("host") ?? '127.0.0.1'
-const port = parseInt(Deno.env.get("port") ?? '8000')
+const host = Deno.env.get("HOST") ?? '127.0.0.1'
+const port = parseInt(Deno.env.get("PORT") ?? '8080')
 
 Logger.levels.base = 5
 const app = new Context({
