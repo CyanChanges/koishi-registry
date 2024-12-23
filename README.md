@@ -5,9 +5,9 @@
 > 
 > Due to violation of the project's license  
 > (the mirror with domain `cyans.icu` from GitHub@lovemilk2333, forum.koishi.xyz@zhuhansan666),  
-> This Project is archived, and will be continue developing in private. Further fixes and updates won't be available.
+> The project will be continue developing in private. This repository may still receives some updates.
 > 
-> Contact me on [contact@cyans.me](mailto:contact@cyans.me) if you need help, or want to join our private.
+> Contact me on [contact@cyans.me](mailto:contact@cyans.me) if you need help, or want to join our private program.
 
 > [!NOTE]
 > End users will still be able to use our
