@@ -12,7 +12,7 @@ import "@std/dotenv/load";
 const host = Deno.env.get("HOST") ?? '127.0.0.1'
 const port = parseInt(Deno.env.get("PORT") ?? '8080')
 
-Logger.levels.base = 5
+// Logger.levels.base = 5
 const app = new Context({
     server: {
         host, port
