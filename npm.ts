@@ -144,7 +144,6 @@ export class NpmWatcher extends Service {
             }
 
             await this.handle(body)
-            break
         }
     }
 
